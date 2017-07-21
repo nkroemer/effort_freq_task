@@ -31,11 +31,15 @@ t_scale_trigger = GetSecs;
     anchor_1 = ['Überhaupt nicht'];
     %anchor_4 = ['Neutral'];
     anchor_7 = ['Sehr'];
+  
     
+ %%Questions   
     if  strcmp(trial.question,'wanted')
         text_question = ['Wie sehr wollten Sie die Belohnung in diesem Durchgang erhalten?'];
     elseif strcmp(trial.question,'exhausted')
         text_question = ['Wie stark haben Sie sich in diesem Durchgang verausgabt?'];
+    elseif strcmp(trial.question,'hungry')
+        text_question = ['Wie hungrig fühlen Sie sich im Moment?'];
      
     end;
     
@@ -122,21 +126,11 @@ t_scale_trigger = GetSecs;
 %                 end
             
                 if flag_resp==1 %Terminate and record rating on left mouseclick
+                                        
+                    rating = ((Slider_x_pos - (setup.ScrWidth/2-Scale_width/2))/ Scale_width)*100; %rescaling of scale_width independent of screen resolution [0-100]
+                    rating_label = text_freerating;
+                    rating_subm = 1;
                     
-                    if  strcmp(trial.question,'exhausted')
-                        
-                    rating_exhaustion = ((Slider_x_pos - (setup.ScrWidth/2-Scale_width/2))/ Scale_width)*100; %rescaling of scale_width independent of screen resolution [0-100]
-                    rating_exhaustion_label = text_freerating;
-                    rating_exhaustion_subm = 1;
-                    
-                    elseif strcmp(trial.question,'wanted')
-                        
-                    rating_wanting = ((Slider_x_pos - (setup.ScrWidth/2-Scale_width/2))/ Scale_width)*100; %rescaling of scale_width independent of screen resolution [0-100]
-                    rating_wanting_label = text_freerating;
-                    rating_wanting_subm = 1;
-                    %out_ind = out_ind + 1;
-                    
-                    end
 
                 elseif (proj_x ~= Slider_x_pos) %Update screen if participant has scrolled up or down
                     Screen('CopyWindow',rating_scr,w);
@@ -160,20 +154,10 @@ t_scale_trigger = GetSecs;
     
      if flag_resp==0 %Terminate without click
                     
-        if  strcmp(trial.question,'exhausted')
-
-            rating_exhaustion = ((Slider_x_pos - (setup.ScrWidth/2-Scale_width/2))/ Scale_width)*100; %rescaling of scale_width independent of screen resolution [0-100]
-            rating_exhaustion_label = text_freerating;
-            rating_exhaustion_subm = 1;
-
-        elseif strcmp(trial.question,'wanted')
-
-            rating_wanting = ((Slider_x_pos - (setup.ScrWidth/2-Scale_width/2))/ Scale_width)*100; %rescaling of scale_width independent of screen resolution [0-100]
-            rating_wanting_label = text_freerating;
-            rating_wanting_subm = 1;
-
-        end 
-        
+            rating = ((Slider_x_pos - (setup.ScrWidth/2-Scale_width/2))/ Scale_width)*100; %rescaling of scale_width independent of screen resolution [0-100]
+            rating_label = text_freerating;
+            rating_subm = 0;
+       
      end
     WaitSecs(feedback_delay); %Show screen for 1.5s post-mouseclick
 
