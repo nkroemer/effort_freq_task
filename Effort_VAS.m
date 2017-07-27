@@ -1,5 +1,6 @@
 %%===================VAS horizontal===================
 %customized visual analogue scales (0-100)
+%Answer with Joystick (USB Xbox-360 Controller)
 %
 %Modified by Monja Neuser
 %   to be used in effort allocation task
@@ -7,17 +8,71 @@
 
 %Update coded with: Matlab R2014a using Psychtoolbox 3.0.11
 %========================================================
+% Define colors
+color.white = WhiteIndex(setup.screenNum); %with intensity value for white on second screen
+color.grey = color.white / 2;
+color.black = BlackIndex(setup.screenNum);
+color.red = [255 0 0];
+color.scale_anchors = color.black;
+
 
 %% Start rating:
 feedback_delay = 1; % specifies the duration that the confirmed rating will be displayed on the screen
-max_dur_rating = 4;
+%max_dur_rating = 4; %Previously fixed, variable for State ratings and
+%Experiment
+max_dur_rating = VAS_rating_duration;
+%VAS_time_limit = 1; %set 0 für state ratings, 1 for experiment
+wait_rest = 0;
+
+%and initialize jitter counter
+%count_jitter = 1;
+
+
+% Fixation cross
+[Joystick.X, Joystick.Y, Joystick.Z, Joystick.Button] = WinJoystickMex(JoystickSpecification);
+x_mid = JoystickSpecification.Max / 2;
+
+
+loop_start = GetSecs;
+while (Joystick.X < x_mid * 0.85) || (Joystick.X > x_mid * 1.15)
+   
+    fix_color = color.red;
+    
+    fix = ['+'];
+    Screen('TextSize',w,64);
+    Screen('TextFont',w,'Arial');
+    [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, fix, 'center', 'center', fix_color,80);
+    time.fix = Screen('Flip', w);
+    
+    [Joystick.X, Joystick.Y, Joystick.Z, Joystick.Button] = WinJoystickMex(JoystickSpecification);
+
+end
+    loop_duration = GetSecs - loop_start;
+    wait_rest = wait_rest - loop_duration;
+    
+    fix_color = color.black;
+
+    fix = ['+'];
+    Screen('TextSize',w,64);
+    Screen('TextFont',w,'Arial');
+    [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, fix, 'center', 'center', fix_color,80);
+    time.fix = Screen('Flip', w);
+   
+    iti_jitter = 0.3+jitter(count_jitter);
+    
+    if  (VAS_time_limit == 1) && (wait_rest > 0)
+        
+        iti_jitter = iti_jitter+wait_rest;
+    end
+    
+    WaitSecs(iti_jitter);
+
+count_jitter = count_jitter + 1;
 
 %--- Start trial---
 %for i=1:length(questionlist{1,1}); %number of questions
 t_scale_trigger = GetSecs; 
 
-  %  trial.question = 'wanted';
-  %  trial.question = 'exhausted';
     trial.runstart = GetSecs; %Time run starts
     
     %--- Prepare off-screen windows---
@@ -38,8 +93,9 @@ t_scale_trigger = GetSecs;
         text_question = ['Wie sehr wollten Sie die Belohnung in diesem Durchgang erhalten?'];
     elseif strcmp(trial.question,'exhausted')
         text_question = ['Wie stark haben Sie sich in diesem Durchgang verausgabt?'];
-    elseif strcmp(trial.question,'hungry')
-        text_question = ['Wie hungrig fühlen Sie sich im Moment?'];
+    else %e.g. strcmp(trial.question,'hungry')
+        %text_question = strcat({'Wie '}, trial.question,  ' fühlen Sie sich im Moment?');
+        text_question = ['Wie ' trial.question  ' fühlen Sie sich im Moment?'];
      
     end;
     
@@ -76,7 +132,7 @@ t_scale_trigger = GetSecs;
     X = round(setup.ScrWidth/2);
     Y = round(Scale_offset + setup.ScrHeight/2); %Fix y coordinate
     Slider_x_pos = X;
-    %SetMouse(X,Y);
+    SetMouse(X,Y);
     %scale_joy_x = ww*1.1/JoystickSpecification.Max;
     %scale_joy_y = wh*1.1/JoystickSpecification.Max;
     scale_joy_x = setup.ScrWidth*0.7/JoystickSpecification.Max;
@@ -126,6 +182,8 @@ t_scale_trigger = GetSecs;
 %                 end
             
                 if flag_resp==1 %Terminate and record rating on left mouseclick
+                    
+                    t_rating_ref = t_button - startTime;
                                         
                     rating = ((Slider_x_pos - (setup.ScrWidth/2-Scale_width/2))/ Scale_width)*100; %rescaling of scale_width independent of screen resolution [0-100]
                     rating_label = text_freerating;
@@ -158,7 +216,10 @@ t_scale_trigger = GetSecs;
             rating_label = text_freerating;
             rating_subm = 0;
        
+            t_rating_ref = GetSecs - startTime;
      end
-    WaitSecs(feedback_delay); %Show screen for 1.5s post-mouseclick
+     wait_rest = max_dur_rating - t_rating_ref;
+     WaitSecs(feedback_delay); %Show screen for 1s post-mouseclick
+     
 
 %end

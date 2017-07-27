@@ -32,14 +32,15 @@ xbox_buffer = zeros(1,50); %will buffer the history of 50 button press status
 
 
 %%get input from the MATLAB console
-subj.studyID=input('Study ID [1 für Training]: ','s');
+subj.studyID=input('Study ID [1 für Training / 2 für Experiment]: ','s');
 subj.subjectID=input('Subject ID [2-stellig]: ','s');
 subj.sessionID=input('Session ID [1/2]: ','s');
 
+%Translate StudyID to Study name
 if strcmp(subj.studyID, '1')
 subj.studyID = 'training';
 else
-subj.studyID = 'exp';
+subj.studyID = 'tVNS';
 end   
 subj.num = str2double(subj.subjectID); %converts Subject ID to integer
 subj.sess = str2double(subj.sessionID); %converts Session ID to integer
@@ -50,7 +51,7 @@ if  strcmp(subj.studyID, 'training')
     
     cond_filename = sprintf('%s\\conditions\\cond_training_%02d', pwd, subj.num);
     
-elseif strcmp(subj.studyID, 'exp')
+elseif strcmp(subj.studyID, 'tVNS')
     
     % for individual rand conditions (diff+incentive):
     cond_filename = sprintf('%s\\conditions\\cond_exp_%02d', pwd, subj.num);
@@ -61,7 +62,7 @@ elseif strcmp(subj.studyID, 'exp')
     
     % Load Maximum Frequency (always from Session 1, t1)
     
-    maxfreq_searchname = [[pwd '/data/effort_pilot_' num2str(subj.num,'%02d')] '*'];
+    maxfreq_searchname = [[pwd '\data\effort_training_' num2str(subj.num,'%02d')] '*'];
     maxfreq_searchname = dir(maxfreq_searchname);
     maxfreq_filename = sprintf('%s\\data\\%s', pwd, maxfreq_searchname.name);
     %maxfreq_filename = sprintf('%s\\data\\effort_1_%02d_1   ', pwd, subj.num); 
@@ -72,15 +73,9 @@ end
 
 load(cond_filename);
 
-
             
 % Setup PTB with some default values
 PsychDefaultSetup(1); %unifies key names on all operating systems
-
-% % Seed the random number generator.
-% rand('seed', sum(100 * clock)); %old MATLAB way
-% 
-
 
 
 % Define colors
@@ -122,7 +117,8 @@ setup.ifi = Screen('GetFlipInterval', w);
 % Query the maximum priority level - optional
 setup.topPriorityLevel = MaxPriority(w);
 
-
+%initialize counter
+count_joy = 1;
 
 
 %Setup ovrlay screen
@@ -139,7 +135,8 @@ KbQueueFlush();
 KbQueueStart();
 [b,c] = KbQueueCheck;
 
-
+VAS_rating_duration = 4;
+VAS_time_limit = 1;
 
 %% Stimulus settings
 
@@ -216,6 +213,20 @@ end
 %%========================
 %%    1 Trial effort    
 %%========================
+%load VAS-jitters
+if strcmp(subj.studyID, 'training') 
+    
+    jitter_filename = sprintf('%s\\jitters\\DelayJitter_mu_0.70_max_4_trials_16.mat', pwd);
+    
+else
+    
+    jitter_filename = sprintf('%s\\jitters\\DelayJitter_mu_0.70_max_4_trials_96.mat', pwd);
+    
+end
+    
+load(jitter_filename);
+jitter = Shuffle(DelayJitter);
+
 
 %Reset values
 
@@ -235,8 +246,8 @@ collect_freq.avrg               = []; %stores weighted interval value of a click
 i_resp = 1;
 i_phantom = 1;
 
-t_button_vec = [];
-frequency_vector = []; %stores weighted interval value of a click
+t_button_vec = [nan];
+frequency_vector = [nan]; %stores weighted interval value of a click
 
 i_step = 1;
 t_100_vector = [];
@@ -254,7 +265,7 @@ output.frequency_t100 = []; %Frequency every 100 ms
 flag = 0; %1 if frequency exceeds MaxFrequency
 exceed_onset = 0; %Time point of ball exceding threshold
 
-t_payout = []; %collects all t1/t2 in one trial
+t_payout = [nan; nan]; %collects all t1/t2 in one trial
 i_payout_onset = 1;
 
 output.t_payout = []; %collects all t1/t2 across all trials
@@ -440,8 +451,9 @@ for i_trial = 1:length(conditions) %Condition sheet determines repetitions
             frequency_t100_vector(1,i_step) = draw_frequency;
             
             i_step = i_step + 1;
-        end
-
+         end
+         
+       
           % Draw Tube
             Screen('DrawLine',effort_scr,color.black,(setup.xCen-Tube.width/2), Tube.height, (setup.xCen-Tube.width/2), (setup.ScrHeight-Tube.offset),6);
             Screen('DrawLine',effort_scr,color.black,(setup.xCen+Tube.width/2), Tube.height, (setup.xCen+Tube.width/2), (setup.ScrHeight-Tube.offset),6);
@@ -456,7 +468,9 @@ for i_trial = 1:length(conditions) %Condition sheet determines repetitions
 
           % Show incentive counter
             Screen('DrawTexture', w, stim.winCounter,[], [(setup.xCen*1.5-(size(img.winCounter,2)*0.3)) (setup.ScrHeight/6-(size(img.winCounter,1)*0.3)) (setup.xCen*1.5) (setup.ScrHeight/6)]);
-     
+            
+%             payout_text_full = num2str(payout.win);
+%             payout_text_short = payout_text_full(1);
             text = [' x ' num2str(payout.win, '%02i')];
                    Screen('TextSize',w,56);
                    Screen('TextFont',w,'Arial');
@@ -536,10 +550,19 @@ for i_trial = 1:length(conditions) %Condition sheet determines repetitions
             
             %If experiment is run with GamePad
             if do_gamepad == 1
-                [Joystick.X, Joystick.Y, Joystick.Z, Joystick.Button] = WinJoystickMex(JoystickSpecification);
                 
+                [Joystick.X, Joystick.Y, Joystick.Z, Joystick.Button] = WinJoystickMex(JoystickSpecification);
+                 
                 %Buffer routine
                 for buffer_i = 2:50 %buffer_size
+                    
+                %continuously log position and time of the button for the right index
+                %finger Joystick.Z
+                %[Joystick.X, Joystick.Y, Joystick.Z, Joystick.Button] = WinJoystickMex(JoystickSpecification);
+                joy.pos_Z(count_joy,i_trial) = Joystick.Z;
+                joy.time_log(count_joy,i_trial) = GetSecs - t_trial_onset;
+                count_joy = count_joy + 1;
+                
                     if Joystick.Z < 200
                         Joystick.RI_button = 1;
                     else
@@ -627,7 +650,7 @@ for i_trial = 1:length(conditions) %Condition sheet determines repetitions
             
     end
             
-                    
+    count_joy = 1;
     end_of_trial = GetSecs;
     
     if (flag == 1)
@@ -635,8 +658,21 @@ for i_trial = 1:length(conditions) %Condition sheet determines repetitions
         t_payout(2,i_payout_onset) =  end_of_trial;
     end
     
+% catch empty trial
+% test = (isempty(frequency_vector));
+% if test == 1
+%     
+%     t_payout = [nan; nan];
+%     frequency_vector = [nan];
+%     t_button_ref_vec = [nan];
+%     
+%     
+% end
+
 % Calculate payoff for exceed_Threshold
 exc_thresh_this_trial = t_payout(2,1:end)-t_payout(1,1:end);
+   
+
 
 % Calculate win for this trial
 if input.incentive == 1 && input.value == 1
@@ -649,9 +685,13 @@ elseif input.incentive == 2 && input.value == 10
     win_cookies = floor(nansum(exc_thresh_this_trial)) * 10;
 end
 
+
+
 output.t_payout = [output.t_payout, t_payout(1:2,1:end)];   
 output.payout_per_trial(1,i_trial) = win_coins;
 output.payout_per_trial(2,i_trial) = win_cookies;
+output.payout_per_trial(3,i_trial) = input.incentive;
+output.payout_per_trial(4,i_trial) = input.value;
 
 
 
@@ -661,9 +701,12 @@ trial.question = 'exhausted';
 
 Effort_VAS
 
+output.rating_exhaustion_runstart(1,i_trial) = startTime; %Start time of rating
 output.rating_exhaustion(1,i_trial) = rating;
 output.rating_exhaustion_label{1,i_trial} = rating_label;
-output.rating_exhaustion_subm(1,i_trial) = rating_subm;    
+output.rating_exhaustion_subm(1,i_trial) = rating_subm;
+output.rating_exhaustion_t_button(i_trial,5) = t_rating_ref; %Time of rating submission
+
 
 %Reset variables
 rating = nan;
@@ -676,10 +719,12 @@ trial.question = 'wanted';
 
 Effort_VAS
 
+output.rating_wanting_runstart(1,i_trial) = startTime; %Start time of rating
 output.rating_wanting(1,i_trial) = ((Slider_x_pos - (setup.ScrWidth/2-Scale_width/2))/ Scale_width)*100; %rescaling of scale_width independent of screen resolution [0-100]
 output.rating_wanting_label{1,i_trial} = text_freerating;
 output.rating_wanting_subm(1,i_trial) = 1;
-
+output.rating_wanting_t_button(i_trial,5) = t_rating_ref; %Time of rating submission
+  
 
 %Reset variables
 rating = nan;
@@ -696,8 +741,18 @@ rating_subm = nan;
 %%==============for training: update Max Frequency====
 if strcmp(subj.studyID, 'training') 
     
-    collectMax.maxFreq(1,i_collectMax) = max(frequency_vector);
-    i_collectMax = i_collectMax + 1;
+    if length(frequency_vector) == 0
+
+        collectMax.next = nan;
+        
+    else
+        
+        collectMax.next = max(frequency_vector);
+        
+    end 
+    
+        collectMax.maxFreq(1,i_collectMax) = collectMax.next;
+        i_collectMax = i_collectMax + 1;
     
 end
 
@@ -746,7 +801,7 @@ output.frequency_button = [output.frequency_button, frequency_vector];
     frequency_vector = [];
 
 output.t_button_referenced = [output.t_button_referenced, t_button_ref_vec];
-    t_button_ref_vec = [];
+    t_button_ref_vec = [nan];
     
  output.t_100 = [output.t_100, t_100_vector];
     t_100_vector = [];
@@ -754,9 +809,13 @@ output.t_button_referenced = [output.t_button_referenced, t_button_ref_vec];
 output.frequency_t100 = [output.frequency_t100, frequency_t100_vector];
     frequency_t100_vector = [];                      
 
+%create temporary storage
+output.filename = sprintf('%s\\data\\effort_%s_%s_s%s_temp', pwd, subj.studyID, subj.subjectID, subj.sessionID);
+save([output.filename '.mat'], 'output', 'subj', 'input', 'joy', 'conditions', 'jitter')
+    
 
 %%=========Clear Variables
-t_payout = [];
+t_payout = [nan; nan];
 i_payout_onset = 1;
 i_payout_offset = 1;
 
@@ -850,7 +909,7 @@ output.values_per_trial_t100_flipped = output.values_per_trial_t100';
 output.time = datetime;
 output.filename = sprintf('%s\\data\\effort_%s_%s_s%s_%s', pwd, subj.studyID, subj.subjectID, subj.sessionID, datestr(now, 'yymmdd_HHMM'));
 
-save([output.filename '.mat'], 'output', 'subj', 'input')
+save([output.filename '.mat'], 'output', 'subj', 'input', 'joy', 'conditions', 'jitter')
 
 Screen('CloseAll')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
