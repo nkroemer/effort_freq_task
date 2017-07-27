@@ -29,6 +29,12 @@ subj.studyID=input('Study ID: ','s');
 subj.subjectID=input('Subject ID: ','s');
 subj.sessionID=input('Session ID: ','s');
 subj.tID=input('timepoint ID: ','s');
+
+
+%Translate StudyID to Study name
+if strcmp(subj.studyID, '2')
+subj.studyID = 'tVNS';
+end   
 subj.sess = str2double(subj.sessionID); %converts Session ID to integer
 subj.num = str2double(subj.subjectID); %converts Subject ID to integer
 subj.t = str2double(subj.tID);
@@ -37,20 +43,26 @@ subj.t = str2double(subj.tID);
 % Setup PTB with some default values
 PsychDefaultSetup(1); %unifies key names on all operating systems
 
-% Seed the random number generator.
-rand('seed', sum(100 * clock)); %old MATLAB way
-
-
-
-
 % Define colors
 color.white = WhiteIndex(setup.screenNum); %with intensity value for white on second screen
 color.grey = color.white / 2;
 color.black = BlackIndex(setup.screenNum);
 color.red = [255 0 0];
-color.scale_anchors = [205 201 201];
+color.scale_anchors = color.black;
 
+% Define the keyboard keys that are listened for. 
+keys.escape = KbName('ESCAPE');%returns the keycode of the indicated key.
+keys.resp = KbName('Space');
+keys.left = KbName('LeftArrow');
+keys.right = KbName('RightArrow');
+keys.down = KbName('DownArrow');
 
+%load jitters and initialize jitter counters
+jitter_filename = sprintf('%s\\jitters\\DelayJitter_mu_0.70_max_4_trials_25.mat', pwd);
+load(jitter_filename);
+
+jitter = Shuffle(DelayJitter);
+count_jitter = 1;
 
 
 % Open the screen
@@ -104,7 +116,7 @@ GetClicks(setup.screenNum);
 
 
 %Instruction text                                               
-text = ['Um Ihre Antworten einzugeben können Sie einen Regler über eine Skala verschieben. Bewegen Sie den Regler mit dem linken Joystick des Controllers und bestätigen Sie Ihre Eingabe mit der A-Taste (grün).'];
+text = ['Um Ihre Antworten einzugeben können Sie einen Regler über eine Skala verschieben. Bewegen Sie den Regler mit dem linken Joystick des Controllers und bestätigen Sie Ihre Eingabe mit der A-Taste (grün, rechter Daumen).\nBitte lassen Sie im Anschluss den Joystick wieder los, sodass er in die Mittelposition zurückgehen kann.'];
 Screen('TextSize',w,32);
 Screen('TextFont',w,'Arial');
 [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', (setup.ScrHeight/5), color.black, 50, [], [], 1.2);
@@ -113,50 +125,59 @@ Screen('Flip',w);
 
 GetClicks(setup.screenNum);
 
+%VAS rating duration
+VAS_rating_duration = 30;
+VAS_time_limit = 0;
+
 %%==============call VAS_exhaustion_wanting===================
 
-state_questions = {  'hungry', 'hungrig';
-                     'full', 'satt';
-                     'thirsty', 'durstig';
-                     'tired', 'müde';
-                     'awake', 'wach';
-                     %Negative Affect (10)
-                     'afraid', 'ängstlich';
-                     'distressed', 'bedrückt';
-                     'ashamed', 'beschämt';
-                     'hostile', 'feindselig';
-                     'nervous', 'nervös';
-                     'irritable', 'reizbar'; 
-                     'guilty', 'schuldig';
-                     'jittery', 'unruhig';
-                     'scared', 'verängstigt';
-                     'upset', 'verärgert';
-                     %Positive Affect (10)
-                     'active', 'aktiv';
-                     'inspired', 'angeregt';
-                     'attentive', 'aufmerksam';
-                     'enthusiastic', 'begeistert';
-                     'determined', 'entschlossen';
-                     'excited', 'freudig erregt';
-                     'alert', 'hellwach';
-                     'interested', 'interessiert';
-                     'strong', 'stark';
-                     'proud', 'stolz'};
-
+state_questions = {  'hungry', 'hungrig', 'State';
+                     'full', 'satt', 'State';
+                     'thirsty', 'durstig', 'State';
+                     'tired', 'müde', 'State';
+                     'awake', 'wach', 'State';
+                     'active', 'aktiv', 'PA';
+                     'distressed', 'bedrückt', 'NA';
+                     'interested', 'interessiert', 'PA';
+                     'excited', 'freudig erregt', 'PA';
+                     'upset', 'verärgert', 'NA';
+                     'strong', 'stark', 'PA';
+                     'guilty', 'schuldig', 'NA';
+                     'scared', 'verängstigt', 'NA';
+                     'hostile', 'feindselig', 'NA';
+                     'inspired', 'angeregt', 'PA';
+                     'proud', 'stolz', 'PA';
+                     'irritable', 'reizbar', 'NA';
+                     'enthusiastic', 'begeistert', 'PA';
+                     'ashamed', 'beschämt', 'NA';
+                     'alert', 'hellwach', 'PA';
+                     'nervous', 'nervös', 'NA';
+                     'determined', 'entschlossen', 'PA';
+                     'attentive', 'aufmerksam', 'PA';
+                     'jittery', 'unruhig', 'NA';
+                     'afraid', 'ängstlich', 'NA'};
                  
-for i_state = 1:length(state_questions)                 
-    trial.question = state_questions(i_state,2);
+for i_state = 1:length(state_questions) 
+    
+   
+    trial.question = state_questions{i_state,2};
 
     Effort_VAS
     
-    output.rating(i_state,1) = rating; %rating value
-    output.rating{i_state,2} = rating_label; %rating label
-    output.rating(i_state,3) = rating_subm;  %  
+    output.rating(i_state, 1) = startTime; %Start time of rating
+    output.rating(i_state,2) = rating; %rating value
+    output.rating(i_state,3) = i_state; %rating label code (index of state_questions cell array)
+    output.rating(i_state,4) = rating_subm;  % answer submitted by pressing A
+    output.rating(i_state,5) = t_rating_ref; %Time of rating submission
 
 %Reset variables
 rating = nan;
 rating_label = nan;
 rating_subm = nan;
+
+output.filename = sprintf('%s\\data\\VAS_%s_%s_%s_%s_temp', pwd, subj.studyID, subj.subjectID, subj.sessionID, subj.tID);
+
+save([output.filename '.mat'], 'output', 'subj', 'state_questions', 'jitter')
 
 end
 
@@ -165,11 +186,22 @@ end
 
 %%Store output
 output.time = datetime;
-output.filename = sprintf('%s\\data\\effortVAS_%s_%s_%s_%s_%s', pwd, subj.studyID, subj.subjectID, subj.sessionID, subj.tID, datestr(now, 'yymmdd_HHMM'));
+output.filename = sprintf('%s\\data\\VAS_%s_%s_%s_%s_%s', pwd, subj.studyID, subj.subjectID, subj.sessionID, subj.tID, datestr(now, 'yymmdd_HHMM'));
 
-save([output.filename '.mat'], 'output', 'subj')
+save([output.filename '.mat'], 'output', 'subj', 'state_questions', 'jitter')
 
 
+%Instruction text                                               
+text = ['Der Fragenblock ist zu Ende. Bitte wenden Sie sich an die Versuchsleitung.'];
+Screen('TextSize',w,32);
+Screen('TextFont',w,'Arial');
+[pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', (setup.ScrHeight/5), color.black, 50, [], [], 1.2);
+[pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text_Cont, 'center', (setup.ScrHeight/5*4.7), color.black, 50, [], [], 1.2);
+Screen('Flip',w);
+
+GetClicks(setup.screenNum);
+
+Screen('CloseAll')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%

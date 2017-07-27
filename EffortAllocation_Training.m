@@ -2,10 +2,18 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%   Determine maximum Frequency (2x10secs)    %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-frequency_vector = [];
+frequency_vector = [nan];
+t_button_vec = [nan];
+
+i_step = 1;
+t_100_vector = [];
+frequency_t100_vector = [];
 
 collectMax.freq=0;
 collectMax.t_button = []; % stores clicks: timestamp
+collectMax.t_button_referenced = []; %referenced to t_trial_onset
+collectMax.frequency_button = [];
+
 collectMax.t_button_interval = []; %stores current_input (t2-t1)
 collectMax.avrg = []; %stores weighted interval value of a click
 collectMax.frequency = []; %stores weighted interval value of a click
@@ -14,6 +22,11 @@ i_phantom = 1;
 i_collectMax = 1;
 collectMax.maxFreq = nan(1,2); %stores maxFreq of 2 practice trials
 collectMax.values_per_trial = [];
+collectMax.values_per_trial_t100 = []; %Matrix of output values / timepoint referenced (every 100ms)
+collectMax.t_100 = []; %Timestamp every 100ms
+collectMax.frequency_t100 = []; %Frequency every 100 ms
+
+
 
 %Initialise exponential weighting
 forget_fact = 0.6;
@@ -77,8 +90,22 @@ for i_collectMax = 1:2 %2 trials of 10secs to collect valid maxFreq
     t_buttonN_1 = t_collectMax_onset;
 
     
-    while ((10 * i_collectMax) > (GetSecs - t_collectMax_onset))       %Trial-length 10sec
-    % Draw Tube
+    %while ((10 * i_collectMax) > (GetSecs - t_collectMax_onset))       %Trial-length 10sec
+    while (10  > (GetSecs - t_collectMax_onset))       %Trial-length 10sec    
+    
+        %routine for timestamps every 100ms
+         t_step = GetSecs;
+         
+         if ((0.1 * i_step) <= (t_step - t_collectMax_onset))
+            
+            t_100_vector(1,i_step) = t_step;
+            frequency_t100_vector(1,i_step) = draw_frequency;
+            
+            i_step = i_step + 1;
+         end
+        
+        
+        % Draw Tube
             Screen('DrawLine',effort_scr,color.black,(setup.xCen-Tube.width/2), Tube.height, (setup.xCen-Tube.width/2), (setup.ScrHeight-Tube.offset),6);
             Screen('DrawLine',effort_scr,color.black,(setup.xCen+Tube.width/2), Tube.height, (setup.xCen+Tube.width/2), (setup.ScrHeight-Tube.offset),6);
             Screen('DrawLine',effort_scr,color.black,(setup.xCen-Tube.width/2), (setup.ScrHeight-Tube.offset), (setup.xCen+Tube.width/2), (setup.ScrHeight-Tube.offset),6);
@@ -108,6 +135,11 @@ for i_collectMax = 1:2 %2 trials of 10secs to collect valid maxFreq
                 
                 %Buffer routine
                 for buffer_i = 2:50 %buffer_size
+                joy.pos_Z(count_joy,i_collectMax) = Joystick.Z;
+                joy.time_log(count_joy,i_collectMax) = GetSecs - t_collectMax_onset;
+                count_joy = count_joy + 1;
+                    
+                    
                     if Joystick.Z < 200
                         Joystick.RI_button = 1;
                     else
@@ -193,24 +225,64 @@ for i_collectMax = 1:2 %2 trials of 10secs to collect valid maxFreq
     
     end
 
+    count_joy = 1;
 %%=========Prepare Output==============  
+if length(frequency_vector) == 0
+    
+    frequency_vector = [nan];
+    
+end
+
+if length(t_button_vec) == 0
+    
+    t_button_vec = [nan];
+    
+end
 
 %Store MaxFrequency for each training trial
+  
 collectMax.maxFreq(1,i_collectMax) = max(frequency_vector);
 
 %Reference t_Button to collectMax_onset 
-collectMax.t_button_ref_vec = t_button_vec - t_collectMax_onset; 
+t_button_ref_vec = t_button_vec - t_collectMax_onset; 
 
 %Copy Output Values into Output Matrix
 collectMax.values_per_trial = [collectMax.values_per_trial, [ones(1,length(frequency_vector)) * subj.num; ... %Subj_ID
                                ones(1,length(frequency_vector)) * i_collectMax ; ...                         %Trial_ID
                                (1:length(frequency_vector)) ; ...                                            %t_Button ID
-                               collectMax.t_button_ref_vec ; ...                                                       %t_Button referenced to 10sec-trial start
+                               t_button_ref_vec ; ...                                                       %t_Button referenced to 10sec-trial start
                                frequency_vector ; ...                                                   %Frequency at t_Button
                                ones(1,length(frequency_vector)) * collectMax.maxFreq(1,i_collectMax)]];       %Maximum Frequency in 10seconds-trial
-    
-    
 
+t_100_ReftoTrialStart = t_100_vector - t_collectMax_onset;                            
+collectMax.values_per_trial_t100 = [collectMax.values_per_trial_t100, [ones(1,length(t_100_vector)) * subj.num; ... %Subj_ID
+                               ones(1,length(t_100_vector)) * i_collectMax ; ...                         %Trial_ID
+                               (1:length(t_100_vector)) ; ...                                            %t_Button ID
+                               t_100_vector; ...                                                       %t_Button referenced to 10sec-trial start
+                               t_100_ReftoTrialStart; ...
+                               frequency_t100_vector ; ...                                                   %Frequency at t_Button
+                               ones(1,length(t_100_vector)) * collectMax.maxFreq(1,i_collectMax)]];       %Maximum Frequency in 10seconds-trial
+       
+
+collectMax.t_button = [collectMax.t_button, t_button_vec];
+    button_vec = [];
+
+collectMax.frequency_button = [collectMax.frequency_button, frequency_vector];
+    frequency_vector = [];
+
+collectMax.t_button_referenced = [collectMax.t_button_referenced, t_button_ref_vec];
+    t_button_ref_vec = [nan];
+
+collectMax.t_100 = [collectMax.t_100, t_100_vector];
+    t_100_vector = [];
+
+collectMax.frequency_t100 = [collectMax.frequency_t100, frequency_t100_vector];
+    frequency_t100_vector = [];
+
+%create temporary storage
+collectMax.filename = sprintf('%s\\data\\effort_%s_%s_s%s_temp', pwd, subj.studyID, subj.subjectID, subj.sessionID);
+save([collectMax.filename '.mat'], 'collectMax', 'subj', 'input', 'joy')
+  
 
 %%=========Clear Variables
 t_collectMax_onset = nan;
@@ -236,8 +308,11 @@ phantom.t_button_interval = [];
 phantom.frequency = []; 
 
 frequency_vector = [];
+t_button_vec = [];
 i_phantom = 1;
 i_resp = 1;
+
+i_step = 1;
 count_joystick = 0;
 
     WaitSecs(1.5);
