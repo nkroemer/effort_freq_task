@@ -1,8 +1,10 @@
 %%===================Effort allocation Training=============
-%Script needed for EffortAllocation_task_14
-%author: Monja P. Neuser, Vanessa Teckentrup, Nils B. Kroemer
-
-%input via XBox USB-Controller
+% Script needed for EffortAllocation_task14
+% Commented and sorted by Monja, 19.10.2018
+%
+% author: Monja P. Neuser, Vanessa Teckentrup, Nils B. Kroemer
+%
+% input via XBox USB-Controller
 
 %%==========================================================
 
@@ -12,55 +14,42 @@
 %%   Determine individual maximum Frequency (2x10secs)    
 %%=====================================================
 
-%%Clear data vectors / initialize start values
-    frequency_vector = [nan];
-    t_button_vec = [nan];
+%% Clear data vectors / initialize start values
+%  This section is mirrored to the preparation in the actual experiment
+%  script
 
-    t_100_vector = [];
-    frequency_t100_vector = [];
- 
+ % (Initializing) force variables
+    restforce = getfield(GripForceSpec, 'restforce');
+    maxpossibleforce = getfield(GripForceSpec, 'maxpossibleforce'); %limit of GFD
+    delta_pos_force = restforce - maxpossibleforce;
+    ForceMat = restforce; %current force. Starts at restforce to start ball at bottom
+    ForceTime = []; %matrix that saves force over time
+    LowerBoundBar = setup.ScrHeight - Tube.offset - Ball.width; %height at which the bar starts when ForceMat = restforce
+    UpperBoundBar = Tube.height;
+    
+    max_Boundary_yposition = LowerBoundBar;
     i_step = 1;
 
-    collectMax.freq=0;
-    collectMax.t_button = []; % stores clicks: timestamp
-    collectMax.t_button_referenced = []; %referenced to t_trial_onset
-    collectMax.frequency_button = [];
-
-    collectMax.t_button_interval = []; %stores current_input (t2-t1)
-    collectMax.avrg = []; %stores weighted interval value of a click
-    collectMax.frequency = []; %stores weighted interval value of a click
-    
-    i_resp = 1; %Index for response arrays
-    i_phantom = 1;
-    i_collectMax = 1;
-    
-    collectMax.maxFreq = nan(1,2); %stores maxFreq of 2 practice trials
+    % Prepare output struct to determine maximal frequency across training
+    i_collectMax = 1; 
+    collectMax.maxForce = nan(1,2);  %stores maxForce of 2 practice trials
     collectMax.values_per_trial = [];
     collectMax.values_per_trial_t100 = []; %Matrix of output values / timepoint referenced (every 100ms)
-    collectMax.t_100 = []; %Timestamp every 100ms
-    collectMax.frequency_t100 = []; %Frequency every 100 ms
 
-
-
-    %Initialize exponential weighting
+    % Initialize exponential weighting
     forget_fact = 0.6;
     prev_weight_fact = 0;
     prev_movingAvrg = 0;
     t_button = 0;
     current_input = 0; 
     Avrg_value = 0;
-    draw_frequency = 0; %Ball position dependent on output/phantom frequency, initially ball at bottom
-
-    max_Boundary_yposition = ((setup.ScrHeight-Tube.offset-Ball.width)-(draw_frequency * draw_frequency_factor));
-
-
+    draw_frequency = 0; %Ball position dependent on output/phantom frequency, initially ball at bottom         
     
     
-    
-    
-%%Starting Protocol
+%% Starting Protocol
 
-        text = ['Auf dem Bildschirm werden Sie gleich ein nach oben geöffnetes Gefäß sehen mit einem blauen Ball darin. Wenn Sie den rechten Taster am Controller mit Ihrem Zeigefinger drücken, bewegt sich der Ball nach oben. Je schneller Sie drücken, desto höher steigt der Ball. \nSie haben jetzt zweimal 10 Sekunden Zeit, um den Ball so hoch wie möglich steigen zu lassen.\nDie höchste erreichte Position wird mit einer blauen Linie angezeigt.'];
+% Introcudction
+text = ['Auf dem Bildschirm werden Sie gleich ein nach oben geöffnetes Gefäß sehen mit einem blauen Ball darin. Wenn Sie Druck auf den Griff in Ihrer Hand ausüben, bewegt sich der Ball nach oben. Je fester Sie drücken, desto höher steigt der Ball. \nSie haben jetzt zweimal 10 Sekunden Zeit, um den Ball so hoch wie möglich steigen zu lassen.\nDie höchste erreichte Position wird mit einer blauen Linie angezeigt.'];
             Screen('TextSize',w,32);
             Screen('TextFont',w,'Arial');
             [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', (setup.ScrHeight/5), color.black, 60, [], [], 1.2);
@@ -72,10 +61,11 @@
 %wait for a mouse click to continue
 GetClicks(setup.screenNum);
 
+% Procedure contains 2 trials of 10secs to collect individual maxFreq
 
-for i_collectMax = 1:2 %2 trials of 10secs to collect valid maxFreq
+for i_collectMax = 1:2 
     
-    
+    % For show further instructions
     if (i_collectMax == 1)
         text = ['Bitte verändern Sie während des Versuchs Ihre Handhaltung nicht. \n\nVersuchen Sie in den nächsten 10 Sekunden den Ball so hoch steigen zu lassen, wie Sie können.'];
             Screen('TextSize',w,32);
@@ -95,6 +85,8 @@ for i_collectMax = 1:2 %2 trials of 10secs to collect valid maxFreq
             GetClicks(setup.screenNum);
     end
 
+    
+    % Show fixation cross at the beginning of each trial 
     fix = ['+'];
     Screen('TextSize',w,64);
     Screen('TextFont',w,'Arial');
@@ -104,139 +96,107 @@ for i_collectMax = 1:2 %2 trials of 10secs to collect valid maxFreq
     WaitSecs(1); %Show screen for 1s
     
 
-    
+    % Actual traing trial star (recortstart time)
     t_collectMax_onset = GetSecs;
-    t_buttonN_1 = t_collectMax_onset;
 
+    % Loop during 10 sec duration (training trial length)
+    while (10  > (GetSecs - t_collectMax_onset))    
     
-    %while ((10 * i_collectMax) > (GetSecs - t_collectMax_onset))       %Trial-length 10sec
-    while (10  > (GetSecs - t_collectMax_onset))       %Trial-length 10sec    
-    
-        %routine for timestamps every 100ms
+        % Store for timestamps and actual frequency every 100ms
          t_step = GetSecs;
-         
-         if ((0.1 * i_step) <= (t_step - t_collectMax_onset))
-            
-            t_100_vector(1,i_step) = t_step;
-            frequency_t100_vector(1,i_step) = draw_frequency;
-            
-            i_step = i_step + 1;
-         end
+         t_vector(1,i_step) = t_step;
+         i_step = i_step + 1;
+
+         % Code if we wanted to do timestamps every 100 ms. 
+%          if ((0.1 * i_step) <= (t_step - t_collectMax_onset))
+%             
+%             t_100_vector(1,i_step) = t_step;
+%             
+%             i_step = i_step + 1;
+%          end
         
+
+         % Draw graphical display (reduced version without threshold)
         
-        % Draw Tube
+         % Draw Tube
             Screen('DrawLine',effort_scr,color.black,(setup.xCen-Tube.width/2), Tube.height, (setup.xCen-Tube.width/2), (setup.ScrHeight-Tube.offset),6);
             Screen('DrawLine',effort_scr,color.black,(setup.xCen+Tube.width/2), Tube.height, (setup.xCen+Tube.width/2), (setup.ScrHeight-Tube.offset),6);
             Screen('DrawLine',effort_scr,color.black,(setup.xCen-Tube.width/2), (setup.ScrHeight-Tube.offset), (setup.xCen+Tube.width/2), (setup.ScrHeight-Tube.offset),6);
             Screen('CopyWindow',effort_scr,w);
           
-            %Draw upper bound blue line
-            Boundary_yposition = ((setup.ScrHeight-Tube.offset-Ball.width)-(draw_frequency * draw_frequency_factor));
+         % Draw upper bound blue line
+         
+         if ForceMat < restforce
+        
+              Boundary_yposition = ((LowerBoundBar - UpperBoundBar)/delta_pos_force) * ForceMat + UpperBoundBar - (maxpossibleforce * (LowerBoundBar - UpperBoundBar)/delta_pos_force);
+    
+         else
+             
+             Boundary_yposition = (setup.ScrHeight-Tube.offset-Ball.width);
+        
+         end
+         
+            % Boundary_yposition = ((setup.ScrHeight-Tube.offset-Ball.width)-TubeForceScale);
             max_Boundary_yposition = min(max_Boundary_yposition, Boundary_yposition);
             
             Screen('DrawLine',w,color.darkblue,(setup.xCen-Tube.width/2), max_Boundary_yposition, (setup.xCen+Tube.width/2), max_Boundary_yposition,3);
 
-          % Draw Ball
-            Ball.position = [(setup.xCen-Ball.width/2) ((setup.ScrHeight-Tube.offset-Ball.width)-(draw_frequency * draw_frequency_factor)) (setup.xCen+Ball.width/2) ((setup.ScrHeight-Tube.offset)-(draw_frequency * draw_frequency_factor))];
+         % Draw Ball
+            Ball.position = [(setup.xCen-Ball.width/2) (Boundary_yposition) (setup.xCen+Ball.width/2) (Boundary_yposition + Ball.width)];
             Ball.color = color.darkblue;
             Screen('FillOval',w,Ball.color,Ball.position);
             Screen('Flip', w);
 
             
-            
+    % Gamepad query to compute button press frequency            
             [b,c] = KbQueueCheck;      
-
-
- 
-            %If experiment is run with GamePad
-            if do_gamepad == 1
-                [Joystick.X, Joystick.Y, Joystick.Z, Joystick.Button] = WinJoystickMex(JoystickSpecification);
+            
+            % Conditional input
+            if do_gamepad == 1 %If experiment is run with GamePad
+                
+                % Continuously log position and time of the button for the right index
+                % finger -> Joystick.Z
+                [Joystick.X, Joystick.Y, Joystick.Z, Joystick.Button] = WinJoystickMex(GripForceSpec);
+                
+                % Getting values from Grip Force Device -> Joystick.Y
+                ForceMat = Joystick.Y;
+                
+                % Saving force over time by adding the current ForceMat to ForceTime at every
+                % step
+                
+                ForceTime = [ForceTime, Joystick.Y]; 
+                
+                %end
                 
                 %Buffer routine
                 for buffer_i = 2:50 %buffer_size
+                    
                 joy.pos_Z(count_joy,i_collectMax) = Joystick.Z;
                 joy.time_log(count_joy,i_collectMax) = GetSecs - t_collectMax_onset;
                 count_joy = count_joy + 1;
-                    
-                    
+                                       
                     if Joystick.Z < 200
                         Joystick.RI_button = 1;
                     else
                         Joystick.RI_button = 0;
                     end
+                    
                     xbox_buffer(buffer_i) = Joystick.RI_button; %Joystick.Button(1);
+                    
                     if xbox_buffer(buffer_i)==1 && xbox_buffer(buffer_i-1)==0
                         count_joystick = 1;
+                        
                         %Stores time stamp of BP
                         t_button = GetSecs; 
+                        
                     else
                         count_joystick = 0;
                     end
+                    
                     if buffer_i == 50
                         buffer_i = 2;
                         xbox_buffer(1)=xbox_buffer(50);
                     end
- 
- 
-        %Frequency estimation based on Button Press            
-        if c(keys.resp) > 0 || count_joystick == 1
-            % resp=resp+1;
-%              if c(keys.resp) > 0
-%                  
-%                 t_button = c(keys.resp);
-                     
-                     if (t_button > (t_collectMax_onset + 0.1)); %if keypress starts during fixation phase, the initial interval might be too short. Frequency estimation the n becomes skewed
-                         
-                         t_button_vec(1,i_resp) = t_button;
-                         
-                         %Exponential weightended Average of RT for frequency estimation
-                         current_input = t_button - t_buttonN_1;                    
-                         current_weight_fact = forget_fact * prev_weight_fact + 1;
-                         Avrg_value = (1-(1/current_weight_fact)) * prev_movingAvrg + ((1/current_weight_fact) * current_input);
-                         frequency_estimate = freq_interval/Avrg_value;
-                         
-
-                         %update Ball height and store frequency for output
-                         draw_frequency = frequency_estimate;
-                         frequency_vector(1,i_resp) = frequency_estimate;
-                         
-                        %Refresh values
-                        prev_weight_fact = current_weight_fact; 
-                        prev_movingAvrg = Avrg_value;
-                        t_buttonN_1 = t_button;
-                        
-                        collectMax.avrg(1,i_resp) = Avrg_value;
-                        collectMax.t_button_interval(1,i_resp) = current_input;
-                                                  
-                        i_resp = i_resp + 1;
-                        count_joystick = 0;
-                        
-                     end
-                     
-                     
-            %if no button press happened: Frequency should decrease slowly based on phantom estimates 
-            elseif (GetSecs - t_buttonN_1) > (1.5 * Avrg_value) && (i_resp > 1);
-                
-                    phantom_current_input = GetSecs - t_buttonN_1;
-                    current_weight_fact = forget_fact * prev_weight_fact + 1;
-                    Estimate_Avrg_value = (1-(1/current_weight_fact)) * prev_movingAvrg + ((1/current_weight_fact) * phantom_current_input);
-                    phantom.freq = freq_interval/Estimate_Avrg_value;  
-                
-                   %update Ball height
-                    draw_frequency = phantom.freq; 
-                                        
-                    %Refresh values in phantom output vector
-                    prev_weight_fact = current_weight_fact; 
-                    prev_movingAvrg = Estimate_Avrg_value;
-                    %NOT% t_buttonN_1 = t_button; Last key press remains unchanged 
-                    %output.t_button(1,output_index) = t_button;
-                    phantom.avrg(1,i_phantom) = Avrg_value;
-                    phantom.t_button_interval(1,i_phantom) = current_input;
-                    phantom.frequency(1,i_phantom) = phantom.freq; 
-                    
-                    i_phantom = i_phantom + 1;
-                    
-        end
         
                 end
                 
@@ -244,109 +204,77 @@ for i_collectMax = 1:2 %2 trials of 10secs to collect valid maxFreq
     
     end
 
+    
+% End of trial    
     count_joy = 1;
-%%=========Prepare Output==============  
-if length(frequency_vector) == 0
     
-    frequency_vector = [nan];
+   
     
-end
-
-if length(t_button_vec) == 0
     
-    t_button_vec = [nan];
-    
-end
+%% Prepare Output
 
-%Store MaxFrequency for each training trial
-  
-collectMax.maxFreq(1,i_collectMax) = max(frequency_vector);
+% Store MaxForce for each training trial in a vector, take the minimum, because lower values indicate
+% higher forces.
+% Will be complemented by practice trials to approximate 'real' MaxForce
 
-%Reference t_Button to collectMax_onset 
-t_button_ref_vec = t_button_vec - t_collectMax_onset; 
+collectMax.maxForce(1,i_collectMax) = min(ForceTime);
+collectMax.maxForce = collectMax.maxForce(collectMax.maxForce ~= 0);
+input.maxForce = min(collectMax.maxForce);
 
-%Copy Output Values into Output Matrix
-collectMax.values_per_trial = [collectMax.values_per_trial, [ones(1,length(frequency_vector)) * subj.num; ... %Subj_ID
-                               ones(1,length(frequency_vector)) * i_collectMax ; ...                         %Trial_ID
-                               (1:length(frequency_vector)) ; ...                                            %t_Button ID
-                               t_button_ref_vec ; ...                                                       %t_Button referenced to 10sec-trial start
-                               frequency_vector ; ...                                                   %Frequency at t_Button
-                               ones(1,length(frequency_vector)) * collectMax.maxFreq(1,i_collectMax)]];       %Maximum Frequency in 10seconds-trial
+% Reference t_vector to collectMax_onset 
+t_ref_vector = t_vector - t_collectMax_onset; 
 
-t_100_ReftoTrialStart = t_100_vector - t_collectMax_onset;                            
-collectMax.values_per_trial_t100 = [collectMax.values_per_trial_t100, [ones(1,length(t_100_vector)) * subj.num; ... %Subj_ID
-                               ones(1,length(t_100_vector)) * i_collectMax ; ...                         %Trial_ID
-                               (1:length(t_100_vector)) ; ...                                            %t_Button ID
-                               t_100_vector; ...                                                       %t_Button referenced to 10sec-trial start
-                               t_100_ReftoTrialStart; ...
-                               frequency_t100_vector ; ...                                                   %Frequency at t_Button
-                               ones(1,length(t_100_vector)) * collectMax.maxFreq(1,i_collectMax)]];       %Maximum Frequency in 10seconds-trial
+% Copy Output Values into Output Matrix
+% Name of struct = collectMax; to disentangle from practice trials (!different array size) 
+collectMax.values_per_trial = [collectMax.values_per_trial, [ones(1,length(ForceTime)) * subj.num; ... %Subj_ID
+                               ones(1,length(ForceTime)) * i_collectMax ; ...                         %Trial_ID
+                               (1:length(ForceTime)) ; ...                                            %t_Button ID
+                               t_ref_vector ; ...                                                       %time referenced to 10 second trial start
+                               ForceTime ; ...                                                   %Force at t_Button
+                               ones(1,length(ForceTime)) * collectMax.maxForce(1,i_collectMax)]];       %Maximum Force in 10seconds-trial
+
+                           
+% t_100_ReftoTrialStart = t_100_vector - t_collectMax_onset;                            
+% 
+% collectMax.values_per_trial_t100 = [collectMax.values_per_trial_t100, [ones(1,length(t_100_vector)) * subj.num; ... %Subj_ID
+%                                     ones(1,length(t_100_vector)) * i_collectMax ; ...                         %Trial_ID
+%                                     (1:length(t_100_vector)) ; ...                                            %t_Button ID
+%                                     t_100_vector; ...                                                       %t_Button referenced to 10sec-trial start
+%                                     t_100_ReftoTrialStart; ...
+%                                     frequency_t100_vector ; ...                                                   %Frequency at t_Button
+%                                     ones(1,length(t_100_vector)) * collectMax.maxFreq(1,i_collectMax)]];       %Maximum Frequency in 10seconds-trial
        
 
-collectMax.t_button = [collectMax.t_button, t_button_vec];
-    button_vec = [];
 
-collectMax.frequency_button = [collectMax.frequency_button, frequency_vector];
-    frequency_vector = [];
-
-collectMax.t_button_referenced = [collectMax.t_button_referenced, t_button_ref_vec];
-    t_button_ref_vec = [nan];
-
-collectMax.t_100 = [collectMax.t_100, t_100_vector];
-    t_100_vector = [];
-
-collectMax.frequency_t100 = [collectMax.frequency_t100, frequency_t100_vector];
-    frequency_t100_vector = [];
-
-%create temporary storage
+% Create & Save temporary output data
 collectMax.filename = sprintf('%s\\data\\effort_%s_%s_s%s_temp', pwd, subj.studyID, subj.subjectID, subj.sessionID);
 save([collectMax.filename '.mat'], 'collectMax', 'subj', 'input', 'joy')
   
 
-%%Clear Variables
-    t_collectMax_onset = nan;
-    t_buttonN_1 = 0;
-    t_button = 0;  
+%% Clear Variables to initiate new trial
 
-    draw_frequency = 0; %resets Ball position
-    current_input = 0;
-    current_weight_fact = 0;
-    Avrg_value = 0;
-    frequency_estimate = 0;
-    prev_weight_fact = 0; 
-    prev_movingAvrg = 0;
-
-    collectMax.avrg(1,i_resp) = Avrg_value;
-    collectMax.t_button_interval(1,i_resp) = current_input;   
-
-    phantom_current_input = 0;
-    Estimate_Avrg_value = 0;
-    phantom.freq = 0;
-    phantom.avrg = [];
-    phantom.t_button_interval = [];
-    phantom.frequency = []; 
-
-    frequency_vector = [];
-    t_button_vec = [];
-    i_phantom = 1;
     i_resp = 1;
 
     i_step = 1;
     count_joystick = 0;
+    
+    ForceMat = restforce;
+    ForceTime = [];
 
     WaitSecs(1.5);
     
 end
 
 
-% Individual MaxFrequency for experiment
 
-input.maxFrequency = max(collectMax.maxFreq);
+% Prepare Individual MaxForce as input for Trials
+collectMax.maxForce = collectMax.maxForce(collectMax.maxForce ~= 0);
+input.maxForce = min(collectMax.maxForce);
 
 
-
-%CONTROL PRINT
-% text = ['Sehr gut! Die Maximal-Frequenz bisher ist: ' num2str(input.maxFrequency)];
+% 
+% % CONTROL PRINT
+% text = ['Sehr gut! Die Maximal-Frequenz bisher ist: ' num2str(input.maxForce)];
 %         Screen('TextSize',w,32);
 %         Screen('TextFont',w,'Arial');
 %         [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', (setup.ScrHeight/5), color.black, 60, [], [], 1.2);
