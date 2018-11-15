@@ -18,32 +18,26 @@
 %  This section is mirrored to the preparation in the actual experiment
 %  script
 
- % (Initializing) force variables
-    restforce = getfield(GripForceSpec, 'restforce');
+ % (Initializing) variables
+    restforce = getfield(GripForceSpec, 'restforce'); %normal holding force
     maxpossibleforce = getfield(GripForceSpec, 'maxpossibleforce'); %limit of GFD
-    delta_pos_force = restforce - maxpossibleforce;
+    delta_pos_force = restforce - maxpossibleforce; 
     ForceMat = restforce; %current force. Starts at restforce to start ball at bottom
     ForceTime = []; %matrix that saves force over time
     LowerBoundBar = setup.ScrHeight - Tube.offset - Ball.width; %height at which the bar starts when ForceMat = restforce
-    UpperBoundBar = Tube.height;
+    UpperBoundBar = Tube.height; %heighest allowed position of bar
     
-    max_Boundary_yposition = LowerBoundBar;
-    i_step = 1;
+    max_Boundary_yposition = LowerBoundBar; % location where bar starts
+    i_step = 1; %loops through each iteration of the while loop (to place time stamps)
 
-    % Prepare output struct to determine maximal frequency across training
+    % Prepare output struct to determine maximal force across training
     i_collectMax = 1; 
     collectMax.maxForce = nan(1,2);  %stores maxForce of 2 practice trials
     collectMax.values_per_trial = [];
-    collectMax.values_per_trial_t100 = []; %Matrix of output values / timepoint referenced (every 100ms)
+    % collectMax.values_per_trial_t100 = []; %Matrix of output values / timepoint referenced (every 100ms)
 
     % Initialize exponential weighting
-    forget_fact = 0.6;
-    prev_weight_fact = 0;
-    prev_movingAvrg = 0;
-    t_button = 0;
-    current_input = 0; 
-    Avrg_value = 0;
-    draw_frequency = 0; %Ball position dependent on output/phantom frequency, initially ball at bottom         
+    t_button = 0; %still used in buffering routine         
     
     
 %% Starting Protocol
@@ -55,13 +49,12 @@ text = ['Auf dem Bildschirm werden Sie gleich ein nach oben geöffnetes Gefäß seh
             [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', (setup.ScrHeight/5), color.black, 60, [], [], 1.2);
             [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text_Cont, 'center', (setup.ScrHeight/5*4.7), color.black, 50, [], [], 1.2);
             Screen('Flip',w);
-            GetClicks(setup.screenNum);
 
 
 %wait for a mouse click to continue
 GetClicks(setup.screenNum);
 
-% Procedure contains 2 trials of 10secs to collect individual maxFreq
+% Procedure contains 2 trials of 10secs to collect individual maxForce
 
 for i_collectMax = 1:2 
     
@@ -106,14 +99,6 @@ for i_collectMax = 1:2
          t_step = GetSecs;
          t_vector(1,i_step) = t_step;
          i_step = i_step + 1;
-
-         % Code if we wanted to do timestamps every 100 ms. 
-%          if ((0.1 * i_step) <= (t_step - t_collectMax_onset))
-%             
-%             t_100_vector(1,i_step) = t_step;
-%             
-%             i_step = i_step + 1;
-%          end
         
 
          % Draw graphical display (reduced version without threshold)
@@ -136,7 +121,7 @@ for i_collectMax = 1:2
         
          end
          
-            % Boundary_yposition = ((setup.ScrHeight-Tube.offset-Ball.width)-TubeForceScale);
+         % Boundary_yposition = ((setup.ScrHeight-Tube.offset-Ball.width)-TubeForceScale);
             max_Boundary_yposition = min(max_Boundary_yposition, Boundary_yposition);
             
             Screen('DrawLine',w,color.darkblue,(setup.xCen-Tube.width/2), max_Boundary_yposition, (setup.xCen+Tube.width/2), max_Boundary_yposition,3);
@@ -167,38 +152,6 @@ for i_collectMax = 1:2
                 ForceTime = [ForceTime, Joystick.Y]; 
                 
                 %end
-                
-                %Buffer routine
-                for buffer_i = 2:50 %buffer_size
-                    
-                joy.pos_Z(count_joy,i_collectMax) = Joystick.Z;
-                joy.time_log(count_joy,i_collectMax) = GetSecs - t_collectMax_onset;
-                count_joy = count_joy + 1;
-                                       
-                    if Joystick.Z < 200
-                        Joystick.RI_button = 1;
-                    else
-                        Joystick.RI_button = 0;
-                    end
-                    
-                    xbox_buffer(buffer_i) = Joystick.RI_button; %Joystick.Button(1);
-                    
-                    if xbox_buffer(buffer_i)==1 && xbox_buffer(buffer_i-1)==0
-                        count_joystick = 1;
-                        
-                        %Stores time stamp of BP
-                        t_button = GetSecs; 
-                        
-                    else
-                        count_joystick = 0;
-                    end
-                    
-                    if buffer_i == 50
-                        buffer_i = 2;
-                        xbox_buffer(1)=xbox_buffer(50);
-                    end
-        
-                end
                 
             end        
     
@@ -248,7 +201,7 @@ collectMax.values_per_trial = [collectMax.values_per_trial, [ones(1,length(Force
 
 % Create & Save temporary output data
 collectMax.filename = sprintf('%s\\data\\effort_%s_%s_s%s_temp', pwd, subj.studyID, subj.subjectID, subj.sessionID);
-save([collectMax.filename '.mat'], 'collectMax', 'subj', 'input', 'joy')
+save([collectMax.filename '.mat'], 'collectMax', 'subj', 'input')
   
 
 %% Clear Variables to initiate new trial
