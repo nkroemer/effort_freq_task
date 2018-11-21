@@ -95,10 +95,7 @@ for i_collectMax = 1:2
     % Loop during 10 sec duration (training trial length)
     while (10  > (GetSecs - t_collectMax_onset))    
     
-        % Store for timestamps and actual frequency every 100ms
-         t_step = GetSecs;
-         t_vector(1,i_step) = t_step;
-         i_step = i_step + 1;
+       
         
 
          % Draw graphical display (reduced version without threshold)
@@ -151,6 +148,11 @@ for i_collectMax = 1:2
                 
                 ForceTime = [ForceTime, Joystick.Y]; 
                 
+                 % Store for timestamps and actual frequency every 100ms
+                t_step = GetSecs;
+                t_vector(1,i_step) = t_step;
+                i_step = i_step + 1;
+                
                 %end
                 
             end        
@@ -186,19 +188,6 @@ collectMax.values_per_trial = [collectMax.values_per_trial, [ones(1,length(Force
                                ForceTime ; ...                                                   %Force at t_Button
                                ones(1,length(ForceTime)) * collectMax.maxForce(1,i_collectMax)]];       %Maximum Force in 10seconds-trial
 
-                           
-% t_100_ReftoTrialStart = t_100_vector - t_collectMax_onset;                            
-% 
-% collectMax.values_per_trial_t100 = [collectMax.values_per_trial_t100, [ones(1,length(t_100_vector)) * subj.num; ... %Subj_ID
-%                                     ones(1,length(t_100_vector)) * i_collectMax ; ...                         %Trial_ID
-%                                     (1:length(t_100_vector)) ; ...                                            %t_Button ID
-%                                     t_100_vector; ...                                                       %t_Button referenced to 10sec-trial start
-%                                     t_100_ReftoTrialStart; ...
-%                                     frequency_t100_vector ; ...                                                   %Frequency at t_Button
-%                                     ones(1,length(t_100_vector)) * collectMax.maxFreq(1,i_collectMax)]];       %Maximum Frequency in 10seconds-trial
-       
-
-
 % Create & Save temporary output data
 collectMax.filename = sprintf('%s\\data\\effort_%s_%s_s%s_temp', pwd, subj.studyID, subj.subjectID, subj.sessionID);
 save([collectMax.filename '.mat'], 'collectMax', 'subj', 'input')
@@ -209,6 +198,7 @@ save([collectMax.filename '.mat'], 'collectMax', 'subj', 'input')
     i_resp = 1;
 
     i_step = 1;
+    t_vector = [];
     count_joystick = 0;
     
     ForceMat = restforce;

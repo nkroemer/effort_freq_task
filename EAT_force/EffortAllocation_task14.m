@@ -7,7 +7,6 @@
 %input via XBox USB-Controller
 
 %Jitter/condition files prepared for n=99
-
 %========================================================
 
 %%Further information
@@ -56,7 +55,7 @@ end
 
 % Basic screen setup 
     setup.screenNum = max(Screen('Screens')); %secondary monitor if there is one connected
-    setup.fullscreen = 0; %if 0 -> will create a small window ideal for debugging, set =1 for Experiment
+    setup.fullscreen = 1; %if 0 -> will create a small window ideal for debugging, set =1 for Experiment
 
 % Basic gamepad settings
     do_gamepad = 1; %do not set to 0, this is not implemented yet
@@ -80,7 +79,7 @@ if strcmp(subj.runLABEL, '1')
     subj.studyID = 'TUE001'; %Prefix of tVNS project
     subj.study_part_ID = 'S5';
 else
-    subj.runLABEL = 'tVNS'; %Label can be study specific
+    subj.runLABEL = 'grEAT'; %Label can be study specific
     subj.studyID = 'TUE001'; %Prefix of tVNS project
     subj.study_part_ID = 'S5';
 end
@@ -109,13 +108,12 @@ subj.sess = str2double(subj.sessionID); %converts Session ID to integer
 
 
     % Load conditions for experiment run
-    elseif strcmp(subj.runLABEL, 'tVNS')
+    elseif strcmp(subj.runLABEL, 'grEAT')
 
         cond_filename = sprintf('%s\\conditions\\EAT-cond-Experiment_%s_%s_%s_R1', pwd, subj.studyID, subj.subjectID, subj.study_part_ID);
 
         % Load maximum frequency (always from Session 1, runLABEL==training)
-        %maxfreq_searchname = [[pwd '\data\effort_TUE001_training_' num2str(subj.num,'%02d') '_s1'] '*'];
-        maxfreq_searchname = [[pwd '\data\EAT_Training_' subj.studyID '_'  subj.subjectID '_' subj.study_part_ID] '*'];
+        maxfreq_searchname = [[pwd '\data\grEATPilot_Training_' subj.studyID '_'  subj.subjectID '_' subj.study_part_ID] '*'];
         maxfreq_searchname = dir(maxfreq_searchname);
         maxfreq_filename = sprintf('%s\\data\\%s', pwd, maxfreq_searchname.name);
 
@@ -250,26 +248,14 @@ stim.incentive_cookies10 = Screen('MakeTexture', w, img.incentive_cookies10);
     Tube.height = round(Tube.offset+setup.ScrHeight/4);
 
     % Drawing parameters for Ball
-    Ball.width = round(setup.ScrWidth * .12);
+    Ball.width = round(setup.ScrWidth * .06);
 
     % Drawing parameters for Reward details
     Coin.width = round(setup.ScrWidth * .15);
 
 
 
-% Parameters to draw ball movement frequency
-
-    output.resp = 0; % Updated by exponential weighting
-    freq_interval=1; % Frequency estimation interval 1 sec
-
-    maxfreq_estimate = 5.5; % numerator of normalising factor. Should be updated after task piloting
-    maxforce_estimate = 16000;
-    %input.maxFrequency = 5.5; %Dummy for MaxFreq estimation, updated before trial start if do_training==1 
-    %input.percentFrequency = 85; %Dummy for MaxFreq estimation, updated before trial start with values from condition sheet
-    
-    % draw_force_normalize = maxforce_estimate/input.maxForce; %
-    % draw_force_factor = Tube.height*0.3 * draw_force_normalize; %value normalied to tube height, to have a nice ball movement using the full screen
-    
+% Parameters to draw ball movement force
     
     restforce = getfield(GripForceSpec, 'restforce'); %Resting force of the Grip Device
     maxpossibleforce = getfield(GripForceSpec, 'maxpossibleforce');
@@ -372,8 +358,7 @@ t_button_vec = [nan];
 frequency_vector = [nan]; %stores weighted interval value of a click
 
 i_step = 1;
-t_100_vector = [];
-frequency_t100_vector = [];
+t_vector = [];
 
 
 % Initialize output structure
@@ -405,7 +390,7 @@ payout.counter = 0;
 payout.win = 0;
 
 % Trial counter CHANGE TO 30 IN EXPERIMENT
-trial_length = 30; %seconds
+trial_length = 24; %seconds
 
 % Force variables
 ForceMat = restforce;
@@ -475,18 +460,8 @@ if do_fmri_flag == 0 || strcmp(subj.runLABEL, 'training')
 
     
     
-%     % Load and show incentives
-%     [img.incentive_coins1, img.map, img.alpha] = imread('incentive_coins1.jpg');
-%     [img.incentive_coins10, img.map, img.alpha] = imread('incentive_coins10.jpg');
-%     %[img.incentive_cookies1, img.map, img.alpha] = imread('incentive_cookies1.jpg');
-%     %[img.incentive_cookies10, img.map, img.alpha] = imread('incentive_cookies10.jpg');
-%     [img.incentive_cookies1, img.map, img.alpha] = imread('incentive_cookies_choc1.jpg');
-%     [img.incentive_cookies10, img.map, img.alpha] = imread('incentive_cookies_choc10.jpg');
-% 
-%     stim.incentive_coins1 = Screen('MakeTexture', w, img.incentive_coins1);
-%     stim.incentive_coins10 = Screen('MakeTexture', w, img.incentive_coins10);
-%     stim.incentive_cookies1 = Screen('MakeTexture', w, img.incentive_cookies1);
-%     stim.incentive_cookies10 = Screen('MakeTexture', w, img.incentive_cookies10);
+    % Load and show incentives
+
 
     text_coins1 = ['1 Geld-Punkt pro Sekunde'];
     text_coins10 = ['10 Geld-Punkte pro Sekunde'];
@@ -555,7 +530,7 @@ if do_fmri_flag == 0 || strcmp(subj.runLABEL, 'training')
 
         text = ['Die nun folgende Übungsphase wird ca. 5 Minuten dauern.\nSollten Sie noch Fragen haben, können Sie diese jetzt stellen.\nWenn Sie sich bereit fühlen, können wir jetzt mit dem Experiment beginnen.'];
 
-    elseif strcmp(subj.runLABEL, 'tVNS') 
+    elseif strcmp(subj.runLABEL, 'grEAT') 
 
         text = ['Das gesamte Experiment wird ca. 40 Minuten dauern.\nSollten Sie noch Fragen haben, können Sie diese jetzt stellen.\nWenn Sie sich bereit fühlen, können wir jetzt mit dem Experiment beginnen.'];
 
@@ -690,8 +665,7 @@ for i_trial = 1:length(conditions) %condition file determines repetitions
           [time.fix, starttime] = Screen('Flip', w);
 
          % Wait for experimenter input 
-         GetClicks(setup.screenNum);
-         stimulation_on = GetSecs;
+         WaitSecs(2 + fix_jitter(i_trial,1));
      
     end
      
@@ -701,14 +675,14 @@ for i_trial = 1:length(conditions) %condition file determines repetitions
     % Preparation before actual Trial start
 
     % Update Conditions trialwise
-    input.percentFrequency = input.maxFrequency * (conditions(i_trial, 1) * 0.01); % 75% or 85%
+    input.percentFrequency = input.maxFrequency * (conditions(i_trial, 1) * 0.01); % 75% or 85% in training, interval in experiment
     input.incentive = conditions(i_trial, 2); %1 = Money, 2 = Food
     input.value = conditions(i_trial, 3); % 1 or 10
     if strcmp(subj.runLABEL, 'training')
         input.uncertainty = 0;
-%     else
-%         input.uncertainty = conditions(i_trial, 4);
-    end %CHANGE when conditions have been adapted, 0 being the certainty condition and 1 being the uncertainty condition.
+    else
+        input.uncertainty = conditions(i_trial, 4);
+    end 
     
     % FORCE Update Conditions trialwise
     
@@ -723,7 +697,7 @@ for i_trial = 1:length(conditions) %condition file determines repetitions
     % FORCE Updates to draw uncertainty box
     ForceLow = restforce - ((restforce - input.maxForce) * 0.6); %60 percent of maxForce, used to draw uncertainty box
     LwrBndUncertain = ((((LowerBoundBar - UpperBoundBar)/delta_pos_force) * ForceLow + UpperBoundBar - (maxpossibleforce * (LowerBoundBar - UpperBoundBar)/delta_pos_force))); %bottom y coordinate of uncertainty box
-    ForceHigh = restforce - ((restforce - input.maxForce) * 0.90); %90 percent of maxForce, used to draw uncertainty box
+    ForceHigh = restforce - ((restforce - input.maxForce) * 0.95); %95 percent of maxForce, used to draw uncertainty box
     UpprBndUncertain = ((((LowerBoundBar - UpperBoundBar)/delta_pos_force) * ForceHigh + UpperBoundBar - (maxpossibleforce * (LowerBoundBar - UpperBoundBar)/delta_pos_force))); %top y coordinate of uncertainty box
     
     % Prepare graphical display with corresponding reward items 
@@ -811,11 +785,6 @@ end
    
 % Loop during 30 sec duration (trial length)
 while (trial_length > (GetSecs - t_trial_onset))    
-
-     % Store for timestamps and actual frequency every 100ms
-     t_step = GetSecs;
-     t_vector(1,i_step) = t_step;
-     i_step = i_step + 1;
 
    % Draw graphical display
 
@@ -952,6 +921,10 @@ while (trial_length > (GetSecs - t_trial_onset))
             % Getting values from Grip Force Device -> Joystick.Y
                 ForceMat = Joystick.Y;
                 ForceTime = [ForceTime, Joystick.Y];
+            % Store for timestamps and actual frequency every 100ms
+                t_step = GetSecs;
+                t_vector(1,i_step) = t_step - t_trial_onset;
+                i_step = i_step + 1;
             
             %Buffer routine
             for buffer_i = 2:50 %buffer_size
@@ -1037,7 +1010,7 @@ output.payout_per_trial(4,i_trial) = input.value;
 %effort_feedback
 timer_onset_feedback = GetSecs;
 
-if do_fmri_flag == 1 && strcmp(subj.runLABEL, 'tVNS')
+if do_fmri_flag == 1 && strcmp(subj.runLABEL, 'grEAT')
     
     timestamps.onsets.feedback(i_trial,1) = timer_onset_feedback - timestamps.trigger.fin;
     
@@ -1066,7 +1039,7 @@ if do_fmri_flag == 1 && strcmp(subj.runLABEL, 'tVNS')
 
     end
 
-elseif do_fmri_flag == 0 || strcmp(subj.runLABEL, 'training')
+elseif strcmp(subj.runLABEL, 'training')
 
     if i_trial < length(conditions)
 
@@ -1075,6 +1048,7 @@ elseif do_fmri_flag == 0 || strcmp(subj.runLABEL, 'training')
         while i_timer <= 3
 
             while i_timer > GetSecs - timer_onset_feedback
+                
 
                 if input.incentive == 1 % money
                     text = ['Sehr gut!\n\nGewinn:   ' num2str(win_coins) '   Geld-Punkt(e). \n\n\n\n' num2str(4 - i_timer) '    Sekunden bis zur nächsten Runde.'];
@@ -1093,6 +1067,38 @@ elseif do_fmri_flag == 0 || strcmp(subj.runLABEL, 'training')
 
     end
     
+elseif do_fmri_flag == 0 && strcmp(subj.runLABEL, 'grEAT') 
+     if i_trial < length(conditions)
+
+        i_timer = 1;
+
+        while i_timer <= 3
+
+            while i_timer > GetSecs - timer_onset_feedback
+                
+
+                if input.incentive == 1 % money
+                    text = ['Sehr gut!\n\nGewinn:   ' num2str(win_coins) '   Geld-Punkt(e). \n\n\n' num2str(4 - i_timer) '    Sekunden bis zur nächsten Runde.'];
+                elseif input.incentive == 2 % food
+                    text = ['Sehr gut!\n\nGewinn:   ' num2str(win_cookies) '   Essens-Punkt(e). \n\n2\n' num2str(4 - i_timer) '    Sekunden bis zur nächsten Runde.'];
+                end
+                    % Draw Text
+                    Screen('TextSize',w,32);
+                    Screen('TextFont',w,'Arial');
+                    [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center',(setup.ScrHeight/10), color.black,40);
+                    % Draw Tube
+                    Screen('DrawLine',w,color.black,(setup.xCen-Tube.width/2), Tube.height, (setup.xCen-Tube.width/2), (setup.ScrHeight-Tube.offset),6);
+                    Screen('DrawLine',w,color.black,(setup.xCen+Tube.width/2), Tube.height, (setup.xCen+Tube.width/2), (setup.ScrHeight-Tube.offset),6);
+                    Screen('DrawLine',w,color.black,(setup.xCen-Tube.width/2), (setup.ScrHeight-Tube.offset), (setup.xCen+Tube.width/2), (setup.ScrHeight-Tube.offset),6);
+                    % Draw Threshold line
+                    Screen('DrawLine',w,color.red,(setup.xCen-Tube.width/2), Threshold.yposition, (setup.xCen+Tube.width/2), Threshold.yposition,3);
+                    Screen('Flip',w);
+                   
+            end
+
+            i_timer = i_timer + 1;
+        end
+    end
 end
 
 
@@ -1132,10 +1138,24 @@ t_ref_vector = t_vector - t_trial_onset;
 
 
 %Copy Output Values into Output Matrix
-if do_fmri_flag == 0
+if do_fmri_flag == 0 && strcmp(subj.runLABEL, 'grEAT')
 output.values_per_trial = [output.values_per_trial, [ones(1,length(ForceTime)) * subj.num ; ...  %Subj_ID
-                           ones(1,length(ForceTime)) * input.maxForce; ...                   %MaxForce
-                           ones(1,length(ForceTime)) * i_trial ; ...                             %Trial_ID
+                           ones(1,length(ForceTime)) * input.maxForce; ...                       %MaxForce
+                           ones(1,length(ForceTime)) * i_trial ;  ...                            %Trial_ID
+                           ones(1,length(ForceTime)) * conditions(i_trial, 1); ...               %Difficulty in %
+                           (1:length(ForceTime)) ; ...                                           %t_Button ID
+                           t_ref_vector ; ...                                                    %time referenced to trial start
+                           ForceTime ; ...                                                       %Frequency at t_Button
+                           ones(1,length(ForceTime)) * conditions(i_trial,2); ...                %Cond.incentive 1= Money, 2= Food
+                           ones(1,length(ForceTime)) * conditions(i_trial,3);   ...              %Cond.value 1 / 10 per Sec
+                           ones(1,length(ForceTime)) * conditions(i_trial,4); ...                %Certain or Uncertain
+                           ones(1,length(ForceTime)) * output.payout_per_trial(1,i_trial); ...   %payout: Money
+                           ones(1,length(ForceTime)) * output.payout_per_trial(2,i_trial)]]; ...   %payout: Food
+                           
+elseif do_fmri_flag == 0 && strcmp(subj.runLABEL, 'training')
+output.values_per_trial = [output.values_per_trial, [ones(1,length(ForceTime)) * subj.num ; ...  %Subj_ID
+                           ones(1,length(ForceTime)) * input.maxForce; ...                       %MaxForce
+                           ones(1,length(ForceTime)) * i_trial ;  ...                            %Trial_ID
                            ones(1,length(ForceTime)) * conditions(i_trial, 1); ...               %Difficulty in %
                            (1:length(ForceTime)) ; ...                                           %t_Button ID
                            t_ref_vector ; ...                                                    %time referenced to trial start
@@ -1144,27 +1164,23 @@ output.values_per_trial = [output.values_per_trial, [ones(1,length(ForceTime)) *
                            ones(1,length(ForceTime)) * conditions(i_trial,3);   ...              %Cond.value 1 / 10 per Sec
                            ones(1,length(ForceTime)) * output.payout_per_trial(1,i_trial); ...   %payout: Money
                            ones(1,length(ForceTime)) * output.payout_per_trial(2,i_trial)]]; ...   %payout: Food
-%                            ones(1,length(frequency_vector)) * output.rating_exhaustion(i_trial); ...    %VAS Rating exhaustion
-%                            ones(1,length(frequency_vector)) * output.rating_wanting(i_trial)]];         %VAS Rating wanting
-                       
-t_100_ReftoTrialStart = t_100_vector - t_trial_onset;                       
-% output.values_per_trial_t100 = [output.values_per_trial_t100, [ones(1,length(t_100_vector)) * subj.num ; ...  %Subj_ID
-%                            ones(1,length(t_100_vector)) * input.maxForce; ...                   %MaxFrequency
-%                            ones(1,length(t_100_vector)) * i_trial ; ...                             %Trial_ID
-%                            ones(1,length(t_100_vector)) * conditions(i_trial, 1); ...               %Difficulty in %
-%                            t_100_vector; ...                                                        %Timestamps every 100ms
-%                            t_100_ReftoTrialStart; ...                                               %Timestamps referenced to trial start
-%                            frequency_t100_vector; ...                                               %Estimated frequency at t100
-%                            ones(1,length(t_100_vector)) * conditions(i_trial,2); ...                %Cond.incentive 1= Money, 2= Food
-%                            ones(1,length(t_100_vector)) * conditions(i_trial,3);   ...              %Cond.value 1 / 10 per Sec
-%                            ones(1,length(t_100_vector)) * output.payout_per_trial(1,i_trial); ...   %payout: Money
-%                            ones(1,length(t_100_vector)) * output.payout_per_trial(2,i_trial)]]; ...   %payout: Food
-% %                            ones(1,length(t_100_vector)) * output.rating_exhaustion(i_trial); ...    %VAS Rating exhaustion
-% %                            ones(1,length(t_100_vector)) * output.rating_wanting(i_trial)]];         %VAS Rating wanting
 
+elseif do_fmri_flag == 1 && strcmp(subj.runLABEL, 'grEAT')
+output.values_per_trial = [output.values_per_trial, [ones(1,length(ForceTime)) * subj.num ; ...  %Subj_ID
+                           ones(1,length(ForceTime)) * input.maxForce; ...                       %MaxForce
+                           ones(1,length(ForceTime)) * i_trial ; ...                             %Trial_ID
+                           ones(1,length(ForceTime)) * conditions(i_trial, 1); ...               %Difficulty in %
+                           (1:length(ForceTime)) ; ...                                           %t_Button ID
+                           t_ref_vector ; ...                                                    %time referenced to trial start
+                           ForceTime ; ...                                                       %Frequency at t_Button
+                           ones(1,length(ForceTime)) * conditions(i_trial,2); ...                %Cond.incentive 1= Money, 2= Food
+                           ones(1,length(ForceTime)) * conditions(i_trial,3);   ...              %Cond.value 1 / 10 per Sec
+                           ones(1,length(ForceTime)) * conditions(i_trial,4); ...                %Certain or Uncertain
+                           ones(1,length(ForceTime)) * output.payout_per_trial(1,i_trial); ...   %payout: Money
+                           ones(1,length(ForceTime)) * output.payout_per_trial(2,i_trial)]];       %payout: Food
+ 
 else
-    
-    output.values_per_trial = [output.values_per_trial, [ones(1,length(ForceTime)) * subj.num ; ...  %Subj_ID
+output.values_per_trial = [output.values_per_trial, [ones(1,length(ForceTime)) * subj.num ; ...  %Subj_ID
                            ones(1,length(ForceTime)) * input.maxForce; ...                       %MaxForce
                            ones(1,length(ForceTime)) * i_trial ; ...                             %Trial_ID
                            ones(1,length(ForceTime)) * conditions(i_trial, 1); ...               %Difficulty in %
@@ -1174,43 +1190,9 @@ else
                            ones(1,length(ForceTime)) * conditions(i_trial,2); ...                %Cond.incentive 1= Money, 2= Food
                            ones(1,length(ForceTime)) * conditions(i_trial,3);   ...              %Cond.value 1 / 10 per Sec
                            ones(1,length(ForceTime)) * output.payout_per_trial(1,i_trial); ...   %payout: Money
-                           ones(1,length(ForceTime)) * output.payout_per_trial(2,i_trial)]];       %payout: Food
-                           
-t_100_ReftoTrialStart = t_100_vector - t_trial_onset;                       
-% output.values_per_trial_t100 = [output.values_per_trial_t100, [ones(1,length(t_100_vector)) * subj.num ; ...  %Subj_ID
-%                            ones(1,length(t_100_vector)) * input.maxFrequency; ...                   %MaxFrequency
-%                            ones(1,length(t_100_vector)) * i_trial ; ...                             %Trial_ID
-%                            ones(1,length(t_100_vector)) * conditions(i_trial, 1); ...               %Difficulty in %
-%                            t_100_vector; ...                                                        %Timestamps every 100ms
-%                            t_100_ReftoTrialStart; ...                                               %Timestamps referenced to trial start
-%                            frequency_t100_vector; ...                                               %Estimated frequency at t100
-%                            ones(1,length(t_100_vector)) * conditions(i_trial,2); ...                %Cond.incentive 1= Money, 2= Food
-%                            ones(1,length(t_100_vector)) * conditions(i_trial,3);   ...              %Cond.value 1 / 10 per Sec
-%                            ones(1,length(t_100_vector)) * output.payout_per_trial(1,i_trial); ...   %payout: Money
-%                            ones(1,length(t_100_vector)) * output.payout_per_trial(2,i_trial)]];       %payout: Food
+                           ones(1,length(ForceTime)) * output.payout_per_trial(2,i_trial)]];       %payout: Food   
     
 end
-                       
-
-                        
-
-% Mirror data vectors to output struct, then clear for next trial
-% 
-% output.t_button = [output.t_button, t_button_vec];
-%     t_button_vec = [];
-% 
-% output.frequency_button = [output.frequency_button, frequency_vector];
-%     frequency_vector = [];
-% 
-% output.t_button_referenced = [output.t_button_referenced, t_button_ref_vec];
-%     t_button_ref_vec = [nan];
-%     
-%  output.t_100 = [output.t_100, t_100_vector];
-%     t_100_vector = [];
-%     
-% output.frequency_t100 = [output.frequency_t100, frequency_t100_vector];
-%     frequency_t100_vector = [];                      
-
     
     
     
@@ -1267,6 +1249,7 @@ i_resp = 1;
 count_joystick = 0;
 
 i_step = 1;
+t_vector = [];
 
 flag = 0;
 end_of_trial = 0;
@@ -1308,7 +1291,7 @@ end
 
         text = ['Die Übung ist nun zu Ende. Im richtigen Spiel hätten Sie \n' num2str(win_sum_coins) ' Geld-Punkte und\n' num2str(win_sum_cookies) ' Essens-Punkte gewonnen.'];
 
-   elseif strcmp(subj.runLABEL, 'tVNS') 
+   elseif strcmp(subj.runLABEL, 'grEAT') 
 
         text = ['Das Spiel ist nun zu Ende.\n Sie gewinnen ' num2str(win_sum_coins) ' Punkte in Euro.\nSie gewinnen ' num2str(win_sum_cookies) ' Punkte in Kcal. \n\nVielen Dank für die Teilnahme!'];
 
@@ -1322,7 +1305,11 @@ end
             [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', setup.ScrHeight/5, color.black,60, [], [], 1.2);
         end
         Screen('Flip',w);
-        WaitSecs(3);
+        if strcmp(subj.runLABEL, 'training')
+           WaitSecs(5);
+        else
+           WaitSecs(30);
+        end
 
 
 KbQueueRelease();
@@ -1342,9 +1329,9 @@ output.values_per_trial_t100_flipped = output.values_per_trial_t100';
 output.time = datetime;
 
 if strcmp(subj.runLABEL, 'training')
-    output.filename = sprintf('EAT_Training_%s_%s_%s_R%s', subj.studyID, subj.subjectID, subj.study_part_ID,subj.sessionID);
+    output.filename = sprintf('grEATPilot_Training_%s_%s_%s_R%s_%s', subj.studyID, subj.subjectID, subj.study_part_ID,subj.sessionID, datestr(now, 'yymmdd_HHMM'));
 else
-    output.filename = sprintf('EAT_%s_%s_%s_R%s', subj.studyID, subj.subjectID, subj.study_part_ID,subj.sessionID);
+    output.filename = sprintf('grEATPilot_%s_%s_%s_R%s_%s', subj.studyID, subj.subjectID, subj.study_part_ID,subj.sessionID, datestr(now, 'yymmdd_HHMM'));
 end
 
 if do_fmri_flag == 1 && ~strcmp(subj.runLABEL, 'training')
