@@ -43,7 +43,7 @@
 %% Starting Protocol
 
 % Introcudction
-text = ['Auf dem Bildschirm werden Sie gleich ein nach oben geöffnetes Gefäß sehen mit einem blauen Ball darin. Wenn Sie Druck auf den Griff in Ihrer Hand ausüben, bewegt sich der Ball nach oben. Je fester Sie drücken, desto höher steigt der Ball. \nSie haben jetzt zweimal 10 Sekunden Zeit, um den Ball so hoch wie möglich steigen zu lassen.\nDie höchste erreichte Position wird mit einer blauen Linie angezeigt.'];
+text = ['Auf dem Bildschirm werden Sie gleich ein nach oben geöffnetes Gefäß sehen mit einem blauen Ball darin. Wenn Sie den Griff in Ihrer Hand zusammendrücken, bewegt sich der Ball nach oben. Je fester Sie drücken, desto höher steigt der Ball. \nSie haben jetzt zweimal 10 Sekunden Zeit, um den Ball so hoch wie möglich steigen zu lassen.\nDie höchste erreichte Position wird mit einer blauen Linie angezeigt.'];
             Screen('TextSize',w,32);
             Screen('TextFont',w,'Arial');
             [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', (setup.ScrHeight/5), color.black, 60, [], [], 1.2);

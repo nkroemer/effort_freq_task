@@ -156,8 +156,8 @@ end
 
 
 %% Load jitter vectors for ball onset
-ball_jitter_filename = sprintf('%s\\jitters\\DelayJitter_mu_2_max_12_trials_24.mat', pwd);
-fix_jitter_filename = sprintf('%s\\jitters\\DelayJitter_mu_3_max_12_trials_24.mat', pwd);
+ball_jitter_filename = sprintf('%s\\jitters\\DelayJitter_mu_2_max_12_trials_64.mat', pwd);
+fix_jitter_filename = sprintf('%s\\jitters\\DelayJitter_mu_3_max_12_trials_64.mat', pwd);
     
 load(ball_jitter_filename);
 ball_jitter = Shuffle(DelayJitter);
@@ -282,7 +282,7 @@ text_Cont = ['Weiter mit Mausklick.'];
 if strcmp(subj.runLABEL, 'training') 
 
     %Instruction text                                               
-    text = ['Willkommen. \n\nDies ist ein einfaches Spiel, bei dem Sie um Geld und ein Frühstück spielen.\nSie können sich zunächst mit den Funktionen vertraut machen und ein bisschen üben. Das eigentliche Spiel wird dann zu einem späteren Zeitpunkt starten.'];
+    text = ['Willkommen. \n\nDies ist ein einfaches Spiel, bei dem Sie um Geld und einen Snack spielen.\nSie können sich zunächst mit den Funktionen vertraut machen und ein bisschen üben. Das eigentliche Spiel wird dann zu einem späteren Zeitpunkt starten.'];
     Screen('TextSize',w,32);
     Screen('TextFont',w,'Arial');
     [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', (setup.ScrHeight/5), color.black, 60, [], [], 1.2);
@@ -411,7 +411,7 @@ if strcmp(subj.runLABEL, 'training')
         
 elseif do_fmri_flag == 1 && ~strcmp(subj.runLABEL, 'training') 
     
-    text = ['Wir beginnen nun mit dem Spiel, das Sie vorhin geübt haben. Zur Erinnerung: Dies ist ein einfaches Spiel, bei dem Sie um Geld und ein Frühstück spielen.\n\nVersuchen Sie mithilfe von Druck den Ball nach oben und über eine rote Linie zu bewegen. Sie können Punkte gewinnen für jede volle Sekunde, die der Ball über der roten Linie bleibt. Sie können erkennen, dass Sie etwas gewinnen, wenn der Ball seine Farbe zu hellblau ändert.'];
+    text = ['Wir beginnen nun mit dem Spiel, das Sie vorhin geübt haben. Zur Erinnerung: Dies ist ein einfaches Spiel, bei dem Sie um Geld und einen Snack spielen.\n\nVersuchen Sie mithilfe von Druck den Ball nach oben und über eine rote Linie zu bewegen. Sie können Punkte gewinnen für jede volle Sekunde, die der Ball über der roten Linie bleibt. Sie können erkennen, dass Sie etwas gewinnen, wenn der Ball seine Farbe zu hellblau ändert.'];
         Screen('TextSize',w,32);
         Screen('TextFont',w,'Arial');
         [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', setup.ScrHeight/5, color.black,60, flip_flag_horizontal, flip_flag_vertical, 1.2);
@@ -420,7 +420,7 @@ elseif do_fmri_flag == 1 && ~strcmp(subj.runLABEL, 'training')
         GetClicks(setup.screenNum);
         
 else     
-        text = ['Wir beginnen nun mit dem Spiel, das Sie vorhin geübt haben. Zur Erinnerung: Dies ist ein einfaches Spiel, bei dem Sie um Geld und ein Frühstück spielen.\n\nVersuchen Sie mithilfe von Druck den Ball nach oben und über eine rote Linie zu bewegen. Sie können Punkte gewinnen für jede volle Sekunde, die der Ball über der roten Linie bleibt. Sie können erkennen, dass Sie etwas gewinnen, wenn der Ball seine Farbe zu hellblau ändert.'];
+        text = ['Wir beginnen nun mit dem Spiel, das Sie vorhin geübt haben. Zur Erinnerung: Dies ist ein einfaches Spiel, bei dem Sie um Geld und einen Snack spielen.\n\nVersuchen Sie mithilfe von Druck den Ball nach oben und über eine rote Linie zu bewegen. Sie können Punkte gewinnen für jede volle Sekunde, die der Ball über der roten Linie bleibt. Sie können erkennen, dass Sie etwas gewinnen, wenn der Ball seine Farbe zu hellblau ändert.'];
         Screen('TextSize',w,32);
         Screen('TextFont',w,'Arial');
         [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', setup.ScrHeight/5, color.black,60, [], [], 1.2);
@@ -428,7 +428,7 @@ else
         Screen('Flip',w);
         GetClicks(setup.screenNum);
 
-      text = ['Der Unterschied zur Übung vorhin ist, dass wir gleichzeitig zur Aufgabe die Vagusnerv-Stimulation am Ohr durchführen. Jeder Durchgang wird zusammen mit der Stimulation von der Versuchsleitung gestartet.'];
+      text = ['Der Unterschied zur Übung vorhin ist, dass Sie nicht in jedem Durchgang wissen werden, wo die Linie genau liegt. In der Hälfte der Durchgänge sehen Sie stattdessen einen roten Bereich. Die Linie, die der Ball übersteigen muss um Punkte zu gewinnen, liegt irgendwo in diesem Bereich. Wenn Sie den Ball also komplett über diesen Bereich bewegen, sammeln Sie auf jeden Fall Essens- oder Geld-Punkte. In diesen Durchgängen ändert der Ball seine Farbe nicht. \n\n Wie zuvor sehen Sie jedoch nach dem Durchgang, wie viele Punkte Sie gesammelt haben. Dann wird Ihnen auch die tatsächliche Position der Linie angezeigt.'];
         Screen('TextSize',w,32);
         Screen('TextFont',w,'Arial');
         [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', setup.ScrHeight/5, color.black,60, [], [], 1.2);
@@ -442,7 +442,7 @@ end
 
 if do_fmri_flag == 0 || strcmp(subj.runLABEL, 'training') 
 
-    text = ['Sie können in den einzelnen Durchgängen unterschiedliche Gewinne erhalten. Sie spielen dabei sowohl für Geld als auch für Kalorien, die Sie im Anschluss an die Aufgabe für ein Frühstück eintauschen können. Was die aktuelle Belohnung ist, bleibt für einen Durchgang von 30 Sekunden konstant und wird Ihnen mit Hilfe von Bildern angezeigt.'];
+    text = ['Sie können in den einzelnen Durchgängen unterschiedliche Gewinne erhalten. Sie spielen dabei sowohl für Geld als auch für Kalorien, die Sie im Anschluss an die Aufgabe für einen Snack eintauschen können. Was die aktuelle Belohnung ist, bleibt für einen Durchgang von 24 Sekunden konstant und wird Ihnen mit Hilfe von Bildern angezeigt.'];
     Screen('TextSize',w,32);
     Screen('TextFont',w,'Arial');
     [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', setup.ScrHeight/5, color.black,60, [], [], 1.2);
@@ -476,7 +476,7 @@ if do_fmri_flag == 0 || strcmp(subj.runLABEL, 'training')
         
         GetClicks(setup.screenNum);         
         
-    text_instr =  ['In manchen Durchgängen können Sie Kalorien gewinnen. Im Anschluss an die Aufgabe bekommen Sie eine entsprechend große Portion Frühstück. \n\nFolgende Bedingungen gibt es:'];
+    text_instr =  ['In manchen Durchgängen können Sie Kalorien gewinnen. Im Anschluss an die Aufgabe bekommen Sie den entsprechenden Gegenwert als Snack augegeben. \n\nFolgende Bedingungen gibt es:'];
         [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text_instr, 'center', setup.ScrHeight/5, color.black,60, [], [], 1.2);   
         
         Screen('DrawTexture', w, stim.incentive_cookies1,[], [(setup.xCen*0.7) ((setup.ScrHeight/5)*2.9-Coin.width*0.6) (setup.xCen*0.7+Coin.width*0.6) ((setup.ScrHeight/5)*2.9)])
@@ -490,14 +490,14 @@ if do_fmri_flag == 0 || strcmp(subj.runLABEL, 'training')
         
         GetClicks(setup.screenNum); 
 
-    text = ['Die Umrechnung der Punkte richtet sich nach folgendem Kurs:  \n5 Geld-Punkte entsprechen 1 cent.\n\n5 Essens-Punkte entsprechen 1 kcal.\n\nIm Anschluss an die Aufgabe können Sie die Geldpunkte in einen entsprechenden Geldbetrag eintauschen und für die Essens-Punkte ein entsprechendes Frühstück erhalten.'];
+    text = ['Die Umrechnung der Punkte richtet sich nach folgendem Kurs:  \n10 Geld-Punkte entsprechen 1 cent.\n\n10 Essens-Punkte entsprechen 1 kcal.\n\nIm Anschluss an die Aufgabe können Sie die Geldpunkte in einen entsprechenden Geldbetrag eintauschen und für die Essens-Punkte einen entsprechenden Snack erhalten.'];
         Screen('TextSize',w,32);
         Screen('TextFont',w,'Arial');
         [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', setup.ScrHeight/5, color.black,60, [], [], 1.2);
         [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text_Cont, 'center', (setup.ScrHeight/5*4.7), color.black, 50, [], [], 1.2);
         Screen('Flip',w);
         GetClicks(setup.screenNum); 
-
+if strcmp(subj.runLABEL, 'training')
     text = ['Im Verlaufe des Experiments wird es unterschiedliche Schwierigkeitsstufen geben. Es wird also nicht immer möglich sein, den Ball die ganze Zeit über vollständig über der Linie zu halten. Eine Möglichkeit damit umzugehen ist, auch während eines Durchgangs Pausen zu machen, um danach wieder stärkeren Druck ausüben zu können.'];
         Screen('TextSize',w,32);
         Screen('TextFont',w,'Arial');
@@ -505,7 +505,15 @@ if do_fmri_flag == 0 || strcmp(subj.runLABEL, 'training')
         [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text_Cont, 'center', (setup.ScrHeight/5*4.7), color.black, 50, [], [], 1.2);
         Screen('Flip',w);
         GetClicks(setup.screenNum); 
-  
+else
+        text = ['Zur Erinnerung: Im Verlaufe des Experiments wird es unterschiedliche Schwierigkeitsstufen geben. Es wird also nicht immer möglich sein, den Ball die ganze Zeit über vollständig über der Linie zu halten. Eine Möglichkeit damit umzugehen ist, auch während eines Durchgangs Pausen zu machen, um danach wieder stärkeren Druck ausüben zu können.'];
+        Screen('TextSize',w,32);
+        Screen('TextFont',w,'Arial');
+        [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', setup.ScrHeight/5, color.black,60, [], [], 1.2);
+        [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text_Cont, 'center', (setup.ScrHeight/5*4.7), color.black, 50, [], [], 1.2);
+        Screen('Flip',w);
+        GetClicks(setup.screenNum); 
+end
 %      if strcmp(subj.runLABEL, 'training') && do_fmri_flag == 0
 % 
 %         text = ['Nach jedem Durchgang werden Ihnen nacheinander zwei Fragen angezeigt:\n\n' char(39) 'Wie stark haben Sie sich in diesem Durchgang verausgabt?' char(39) ' \n ' char(39) 'Wie sehr wollten Sie die Belohnung in diesem Durchgang erhalten?' char(39) '\n\nSie können zum Antworten den Regler auf einer Skala (überhaupt nicht - sehr) verschieben. Nutzen Sie dazu bitte den linken Joystick auf dem Controller. Ihre Antwort müssen Sie dann mit der grünen A-Taste auf dem Controller bestätigen.\nBitte beachten Sie, dass Sie für die Antworten nur eine begrenzte Zeit zur Verfügung haben. Überlegen Sie deshalb nicht zu lange, sondern antworten Sie spontan. Es gibt dabei kein ' char(39) 'Richtig' char(39) ' oder ' char(39) 'Falsch' char(39) '.'];
@@ -1259,7 +1267,7 @@ if strcmp(subj.runLABEL, 'training')
     
     %input.maxFrequency = max(collectMax.maxFreq);
     collectMax.maxForce = collectMax.maxForce(collectMax.maxForce ~= 0);
-    input.maxForce = min(collectMax.maxForce);
+    input.maxForce = min(input.maxForce, min(collectMax.maxForce));
     
 end
 
@@ -1273,11 +1281,11 @@ end
    % Show win 
    if strcmp(subj.runLABEL, 'training') 
 
-        text = ['Die Übung ist nun zu Ende. Im richtigen Spiel hätten Sie \n' num2str(win_sum_coins) ' Geld-Punkte und\n' num2str(win_sum_cookies) ' Essens-Punkte gewonnen.'];
+        text = ['Die Übung ist nun zu Ende. Im richtigen Spiel hätten Sie \n' num2str(win_sum_coins) ' Geld-Punkte und\n' num2str(win_sum_cookies) ' Essens-Punkte gewonnen.\n\nDie maximal ausgeübte Kraft beträgt: ' num2str(input.maxForce) '.' ];
 
    elseif strcmp(subj.runLABEL, 'grEAT') 
 
-        text = ['Das Spiel ist nun zu Ende.\n Sie gewinnen ' num2str(win_sum_coins/10) ' Punkte in Euro.\nSie gewinnen ' num2str(win_sum_cookies/10) ' Punkte in Kcal. \n\nVielen Dank für die Teilnahme!'];
+        text = ['Das Spiel ist nun zu Ende.\n Sie gewinnen ' num2str(win_sum_coins) ' Punkte in Euro.\nSie gewinnen ' num2str(win_sum_cookies) ' Punkte in Kcal. \n\nVielen Dank für die Teilnahme!'];
 
    end
 
@@ -1290,7 +1298,7 @@ end
         end
         Screen('Flip',w);
         if strcmp(subj.runLABEL, 'training')
-           WaitSecs(5);
+           WaitSecs(10);
         else
            WaitSecs(30);
         end
