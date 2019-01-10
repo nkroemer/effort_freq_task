@@ -1,11 +1,11 @@
 %%======= After study 1, N=24 ====
 % 
 % Script to merge EAT outputs
-% Data from TUE001 (tVNS behavioral)
+% Data from TUE002 (grEAT behavioral)
 % 
 % Merge all Data sets
 %
-% Written by Monja Neuser, Nov 2017
+% Written by Monja Neuser, Nov 2017, adapted by Mechteld, Jan 2019
 %%======================================
 
 % Clear workspace
@@ -24,7 +24,7 @@ restforce = 34000;
 
 %Define main directory
 %effort_directory = 'C:\Users\Monja\MATLAB\Effort_task';
-effort_directory = 'C:\Users\MechteldMaria\Documents\Tuebingen\WS1819\InternshipI\MATLAB';
+effort_directory = 'MATLAB';
 cd(effort_directory);
 
 
@@ -45,16 +45,14 @@ for runLabel = 1:2
 
         if data_present(i_subj) == 1
             
-            clmnnmbr = size(output.values_per_trial_flipped, 2) + 1;
-            
             if runLabel == 1
                 
                 trialnum = 8;
                 
 %               training_searchname = [[pwd '\Data\Training\grEATPilot_Training_TUE001_' num2str(i_subj,'%02d') '_S' num2str(i_sess)] '*'];
-                training_searchname = [[pwd '\Data\Training\grEATPilot_Training_TUE001_' num2str(i_subj,'%02d')] '*'];
+                training_searchname = [[pwd '/Data/Training/grEATPilot_Training_TUE001_' num2str(i_subj,'%02d')] '*'];
                 training_searchname = dir(training_searchname);
-                training_filename = sprintf('%s\\Data\\Training\\%s', pwd, training_searchname.name);
+                training_filename = sprintf('%s//Data//Training//%s', pwd, training_searchname.name);
                 
                 load(training_filename, 'output');
                 
@@ -63,13 +61,15 @@ for runLabel = 1:2
                 trialnum = 64;
                 
 %               data_searchname = [[pwd '\Data\Experiment\grEATPilot_TUE001_' num2str(i_subj,'%02d') '_S' num2str(i_sess)] '*'];
-                data_searchname = [[pwd '\Data\Training\grEATPilot_TUE001_' num2str(i_subj,'%02d')] '*'];
+                data_searchname = [[pwd '/Data/Experiment/grEATPilot_TUE001_' num2str(i_subj,'%02d')] '*'];
                 data_searchname = dir(data_searchname);
-                data_filename = sprintf('%s\\Data\\Experiment\\%s', pwd, data_searchname.name);
+                data_filename = sprintf('%s//Data//Experiment//%s', pwd, data_searchname.name);
                
                 load(data_filename, 'output');
                 
             end
+            
+        clmnnmbr = size(output.values_per_trial_flipped, 2) + 1;
             
 %       start to create new output file
         output.values_per_trial_merged = output.values_per_trial_flipped; 
@@ -81,17 +81,18 @@ for runLabel = 1:2
         smple_per_sec = trial_length/sampling_rate; % average time between two samples
         
         output.values_per_trial_merged(:,clmnnmbr) = output.values_per_trial_flipped(:,5) * smple_per_sec;
+        clmn_apprx_time = clmnnmbr;
         clmnnmbr = clmnnmbr + 1;
         
         %add more values for analysis
         %amount of seconds ball was kept above the line
         if runLabel == 1
-            win_inSec = (max(output.values_per_trial_flipped(:,10),output.values_per_trial_flipped(:,11)));
+            win_inSec = max(output.values_per_trial_flipped(:,10),output.values_per_trial_flipped(:,11));
         else
-            win_inSec = (max(output.values_per_trial_flipped(:,11),output.values_per_trial_flipped(:,12)));
+            win_inSec = max(output.values_per_trial_flipped(:,11),output.values_per_trial_flipped(:,12));
         end
         
-        output.values_per_trial_merged(:,clmnnmbr) = (win_inSec/output.values_per_trial_flipped(:,9));
+        output.values_per_trial_merged(:,clmnnmbr) = win_inSec ./ output.values_per_trial_flipped(:,9);
         clmnnmbr = clmnnmbr + 1;
 
         
@@ -99,9 +100,10 @@ for runLabel = 1:2
         if output.values_per_trial_flipped(:,7) > restforce
             rel_Force = 0;
         else
-            rel_Force = (((restforce - output.values_per_trial_flipped(:,7)) * 100)/(restforce - output.values_per_trial_flipped(:,2)));
+            rel_Force = (((restforce - output.values_per_trial_flipped(:,7)) * 100)./(restforce - output.values_per_trial_flipped(:,2)));
         end
         output.values_per_trial_merged(:,clmnnmbr) = rel_Force;
+        clmn_rel_Force = clmnnmbr;
         clmnnmbr = clmnnmbr + 1;
 
         
@@ -112,7 +114,7 @@ for runLabel = 1:2
             
             
         %Compute derivations over time for absolute frequency at timepoint
-        X = output.values_per_trial_flipped(output.values_per_trial_flipped(:,3)==i_trial,6);
+        X = output.values_per_trial_merged(output.values_per_trial_flipped(:,3)==i_trial,clmn_apprx_time);
         
         Y_abs = output.values_per_trial_flipped(output.values_per_trial_flipped(:,3)==i_trial,7);
        
@@ -122,7 +124,7 @@ for runLabel = 1:2
             integral_abs = cumtrapz(X,Y_abs);
         
         
-        Y_rel = output.values_per_trial_merged(output.values_per_trial_merged(:,3)==i_trial,17);
+        Y_rel = output.values_per_trial_merged(output.values_per_trial_merged(:,3)==i_trial,clmn_rel_Force);
         
             deriv1_rel = diff(Y_rel,1);        
             deriv2_rel = diff(Y_rel,2);
@@ -130,13 +132,19 @@ for runLabel = 1:2
             integral_rel = cumtrapz(X,Y_rel);
  
         %Merge deriv1/deriv2/auc vector with output matrix    
-        output.values_per_trial_merged(output.values_per_trial_merged(:,3)==i_trial,18) = [0;deriv1_abs];
-        output.values_per_trial_merged(output.values_per_trial_merged(:,3)==i_trial,19) = [0;0;deriv2_abs];
-        output.values_per_trial_merged(output.values_per_trial_merged(:,3)==i_trial,20) = integral_abs;
+        output.values_per_trial_merged(output.values_per_trial_merged(:,3)==i_trial,clmnnmbr) = [0;deriv1_abs];
+        clmnnmbr = clmnnmbr + 1;
+        output.values_per_trial_merged(output.values_per_trial_merged(:,3)==i_trial,clmnnmbr) = [0;0;deriv2_abs];
+        clmnnmbr = clmnnmbr + 1;
+        output.values_per_trial_merged(output.values_per_trial_merged(:,3)==i_trial,clmnnmbr) = integral_abs;
+        clmnnmbr = clmnnmbr + 1;
         
-        output.values_per_trial_merged(output.values_per_trial_merged(:,3)==i_trial,21) = [0;deriv1_rel];
-        output.values_per_trial_merged(output.values_per_trial_merged(:,3)==i_trial,22) = [0;0;deriv2_rel];
-        output.values_per_trial_merged(output.values_per_trial_merged(:,3)==i_trial,23) = integral_rel;
+        output.values_per_trial_merged(output.values_per_trial_merged(:,3)==i_trial,clmnnmbr) = [0;deriv1_rel];
+        clmnnmbr = clmnnmbr + 1;
+        output.values_per_trial_merged(output.values_per_trial_merged(:,3)==i_trial,clmnnmbr) = [0;0;deriv2_rel];
+        clmnnmbr = clmnnmbr + 1;
+        output.values_per_trial_merged(output.values_per_trial_merged(:,3)==i_trial,clmnnmbr) = integral_rel;
+        clmnnmbr = clmnnmbr + 1;
             
             
             
@@ -185,14 +193,14 @@ end
 if runLabel == 1
     
     %Replace NaNs with 999999
-    TUE002_MergedTraining(isnan(TUE001_MergedExp)) = 9999;
+    TUE002_MergedTraining(isnan(TUE002_MergedExp)) = 9999;
 
 
         %Save training output (button press)
         fullSample_filename = sprintf('%s\\Training\\TUE002_MergedTraining_%s', effort_directory, datestr(now, 'yyyymmdd'));
         save([fullSample_filename '.mat'], 'TUE002_MergedTraining')
 
-        file_directory = [effort_directory '\Training'];
+        file_directory = [effort_directory '/Training_grEAT'];
         cd(file_directory);
         csv_filename = ['TUE002_MergedTraining_' datestr(now, 'yyyymmdd') '.dat'];
         csvwrite(csv_filename, TUE002_MergedTraining)
@@ -209,7 +217,7 @@ else
         fullSample_filename = sprintf('%s\\Experiment_tVNS\\TUE002_MergedExp_%s', effort_directory, datestr(now, 'yyyymmdd'));
         save([fullSample_filename '.mat'], 'TUE002_MergedExp')
 
-        file_directory = [effort_directory '\Experiment_tVNS'];
+        file_directory = [cd '/Experiment_grEAT'];
         cd(file_directory);
         csv_filename = ['TUE002_MergedExp_' datestr(now, 'yyyymmdd') '.dat'];
         csvwrite(csv_filename, TUE002_MergedExp)
