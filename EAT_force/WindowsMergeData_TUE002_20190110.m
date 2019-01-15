@@ -106,7 +106,7 @@ for runLabel = 1:2
         clmn_rel_Force = clmnnmbr;
         clmnnmbr = clmnnmbr + 1;
 
-        
+        clmnnmbr_der = clmnnmbr;
         
         %Compute area under curve trialwise for absolute frequency
                
@@ -144,9 +144,8 @@ for runLabel = 1:2
         output.values_per_trial_merged(output.values_per_trial_merged(:,3)==i_trial,clmnnmbr) = [0;0;deriv2_rel];
         clmnnmbr = clmnnmbr + 1;
         output.values_per_trial_merged(output.values_per_trial_merged(:,3)==i_trial,clmnnmbr) = integral_rel;
-        clmnnmbr = clmnnmbr + 1;
             
-            
+        clmnnmbr = clmnnmbr_der;    
             
        clear X
        clear Y_abs
