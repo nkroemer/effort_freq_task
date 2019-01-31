@@ -30,7 +30,7 @@ load('GripForceSpec.mat')
 %% Settings
 
 % Run mode settings (fMRI or behavioral)
-do_fmri_flag = 0; %will include trigger
+do_fmri_flag = 1; %will include trigger
 
 if do_fmri_flag == 1
     dummy_volumes = 2; %will have to be set according to the sequence
@@ -42,6 +42,7 @@ if do_fmri_flag == 1
     count_trigger = 0;
     win_phase_counter = 1; % Logs onsets of phases above threshold
     rest_phase_counter = 1; % Logs onsets of phases below threshold
+    gf_sr_counter = 1; % Logs each call to MexFile
     
     flip_flag_horizontal = 1;
     flip_flag_vertical = 0;
@@ -76,11 +77,11 @@ subj.sessionID=input('Session ID [1/2]: ','s');
 %Convert runLABEL (numeric) input to label (string)
 if strcmp(subj.runLABEL, '1')
     subj.runLABEL = 'training';
-    subj.studyID = 'TUE001'; %Prefix of EKS project
+    subj.studyID = 'TUE002'; %Prefix of EKS project
     subj.study_part_ID = 'S5';
 else
     subj.runLABEL = 'grEAT'; %Label can be study specific
-    subj.studyID = 'TUE001'; %Prefix of tVNS project
+    subj.studyID = 'TUE002'; %Prefix of EKS project
     subj.study_part_ID = 'S5';
 end
 
@@ -116,10 +117,12 @@ subj.sess = str2double(subj.sessionID); %converts Session ID to integer
         maxfreq_searchname = [[pwd '\data\grEATPilot_Training_' subj.studyID '_'  subj.subjectID '_' subj.study_part_ID] '*'];
         maxfreq_searchname = dir(maxfreq_searchname);
         maxfreq_filename = sprintf('%s\\data\\%s', pwd, maxfreq_searchname.name);
+        load(maxfreq_filename,'input');
 
     end
 
 load(cond_filename);
+
 
   
 %% Load graphics for counter and instruction graphics
@@ -159,7 +162,9 @@ fix_jitter_filename = sprintf('%s\\jitters\\DelayJitter_mu_3_max_12_trials_64.ma
     
 load(ball_jitter_filename);
 ball_jitter = Shuffle(DelayJitter);
+isi_jitter = Shuffle(DelayJitter);
 load(fix_jitter_filename);
+iti_jitter = Shuffle(DelayJitter);
 fix_jitter = Shuffle(DelayJitter);
 
 
@@ -387,7 +392,7 @@ payout.diff = [nan nan]';
 payout.counter = 0;
 payout.win = 0;
 
-% Trial counter CHANGE TO 30 IN EXPERIMENT
+% Trial counter 
 trial_length = 24; %seconds
 
 % Force variables
@@ -542,7 +547,7 @@ end
     
 elseif do_fmri_flag == 1 && ~strcmp(subj.runLABEL, 'training')
     
-    text = ['Das gesamte Experiment wird ca. 20 Minuten dauern.\nSollten Sie noch Fragen haben, können Sie diese jetzt stellen.\nWenn Sie sich bereit fühlen, können wir jetzt mit dem Experiment beginnen.'];
+    text = ['Das gesamte Experiment wird ca. 40 Minuten dauern.\nSollten Sie noch Fragen haben, können Sie diese jetzt stellen.\nWenn Sie sich bereit fühlen, können wir jetzt mit dem Experiment beginnen.'];
 
     Screen('TextSize',w,32);
         Screen('TextFont',w,'Arial');
@@ -614,50 +619,70 @@ for i_trial = 1:length(conditions) %condition file determines repetitions
 
         end
         
-    end
-    
-    
-    
-    % Fixation cross
-    
-    if do_fmri_flag == 1 && ~strcmp(subj.runLABEL, 'training') 
+    elseif do_fmri_flag == 1 && ~strcmp(subj.runLABEL, 'training')
         
-        % Show fixation cross 
-        fix = ['+'];
-        Screen('TextSize',w,64);
-        Screen('TextFont',w,'Arial');
-        [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, fix, 'center', 'center', color.black,80);
-        [time.fix, starttime] = Screen('Flip', w);
+        % Enable break after each third of the trials for 15 seconds
+        if i_trial == round((1/3)*(length(conditions)) + 1) || i_trial == round((2/3)*(length(conditions)) + 1)
 
-        timestamps.onsets.fix(i_trial,1) = starttime - timestamps.trigger.fin;
+                text = ['Sie können jetzt für 15 Sekunden eine Pause machen und sich lockern.'];          
 
-        WaitSecs(2 + fix_jitter(i_trial,1)); %Show screen for 2s plus jitter value (drawn from exponential distribution with mean of 3 and max = 12)
-        
-    elseif do_fmri_flag == 1 && strcmp(subj.runLABEL, 'training') 
-        
-        % Show fixation cross
-        fix = ['+'];
-        Screen('TextSize',w,64);
-        Screen('TextFont',w,'Arial');
-        [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, fix, 'center', 'center', color.black,80);
-        [time.fix, starttime] = Screen('Flip', w);
 
-        WaitSecs(2);
+            Screen('TextSize',w,32);
+            Screen('TextFont',w,'Arial');
+            [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', setup.ScrHeight/5, color.black,60, flip_flag_horizontal, flip_flag_vertical, 1.2);
+            %[pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text_Cont, 'center', (setup.ScrHeight/5*4.7), color.black, 50, [], [], 1.2);
+            [time.break_start, starttime] = Screen('Flip',w);
+            timestamps.onsets.break_start(i_trial,1) = starttime - timestamps.trigger.fin;
             
-    else
-    
-        % Manual trigger together with NEMOS tVN-Stimulation
-          fix = ['+'];
-          Screen('TextSize',w,64);
-          Screen('TextFont',w,'Arial');
-          [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, fix, 'center', 'center', color.black,80);
-          [time.fix, starttime] = Screen('Flip', w);
+            WaitSecs(15);
 
-         % Wait for experimenter input 
-         %WaitSecs(2 + fix_jitter(i_trial,1));
-         WaitSecs(2);
-     
+        end
+        
     end
+    
+    
+    
+% Fixation cross -> Disabled for now as fixation crosses have been moved to
+% end of paradigm
+    
+%     if do_fmri_flag == 1 && ~strcmp(subj.runLABEL, 'training') 
+%         
+%         % Show fixation cross 
+%         fix = ['+'];
+%         Screen('TextSize',w,64);
+%         Screen('TextFont',w,'Arial');
+%         [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, fix, 'center', 'center', color.black,80);
+%         [time.fix, starttime] = Screen('Flip', w);
+% 
+%         timestamps.onsets.fix(i_trial,1) = starttime - timestamps.trigger.fin;
+% 
+%         WaitSecs(2 + fix_jitter(i_trial,1)); %Show screen for 2s plus jitter value (drawn from exponential distribution with mean of 3 and max = 12)
+%         
+%     elseif do_fmri_flag == 1 && strcmp(subj.runLABEL, 'training') 
+%         
+%         % Show fixation cross
+%         fix = ['+'];
+%         Screen('TextSize',w,64);
+%         Screen('TextFont',w,'Arial');
+%         [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, fix, 'center', 'center', color.black,80);
+%         [time.fix, starttime] = Screen('Flip', w);
+% 
+%         WaitSecs(2);
+%             
+%     else
+%     
+%         % Manual trigger together with NEMOS tVN-Stimulation
+%           fix = ['+'];
+%           Screen('TextSize',w,64);
+%           Screen('TextFont',w,'Arial');
+%           [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, fix, 'center', 'center', color.black,80);
+%           [time.fix, starttime] = Screen('Flip', w);
+% 
+%          % Wait for experimenter input 
+%          %WaitSecs(2 + fix_jitter(i_trial,1));
+%          WaitSecs(2);
+%      
+%     end
      
      
      
@@ -729,37 +754,65 @@ for i_trial = 1:length(conditions) %condition file determines repetitions
 
     Screen('DrawTexture', effort_scr, incentive,[], [((setup.xCen-Tube.width)-Coin.width) (setup.ScrHeight/4) (setup.xCen-Tube.width) (setup.ScrHeight/4+Coin.width)]);
     Screen('CopyWindow',effort_scr,w);
+    
+    [time.img, starttime] = Screen('Flip', w);
+    
+    if do_fmri_flag == 1 && ~strcmp(subj.runLABEL, 'training')
+            
+        timestamps.onsets.condition_preview_reward(i_trial,1) = starttime - timestamps.trigger.fin;
+    
+    end
+    
+    if do_fmri_flag == 1 && ~strcmp(subj.runLABEL, 'training') 
+            
+        WaitSecs(2 + ball_jitter(i_trial,1)); %Show screen for 2s plus jitter value (drawn from exponential distribution with mean of 2 and max = 12)
+    
+    end
 
     % Draw Max% line
     if input.uncertainty == 0 
+        Screen('DrawTexture', w, incentive,[], [((setup.xCen-Tube.width)-Coin.width) (setup.ScrHeight/4) (setup.xCen-Tube.width) (setup.ScrHeight/4+Coin.width)]); 
+    
+    % Draw Tube
+    Screen('DrawLine',effort_scr,color.black,(setup.xCen-Tube.width/2), Tube.height, (setup.xCen-Tube.width/2), (setup.ScrHeight-Tube.offset),6);
+    Screen('DrawLine',effort_scr,color.black,(setup.xCen+Tube.width/2), Tube.height, (setup.xCen+Tube.width/2), (setup.ScrHeight-Tube.offset),6);
+    Screen('DrawLine',effort_scr,color.black,(setup.xCen-Tube.width/2), (setup.ScrHeight-Tube.offset), (setup.xCen+Tube.width/2), (setup.ScrHeight-Tube.offset),6);
+
+    Screen('DrawTexture', effort_scr, incentive,[], [((setup.xCen-Tube.width)-Coin.width) (setup.ScrHeight/4) (setup.xCen-Tube.width) (setup.ScrHeight/4+Coin.width)]);
+    Screen('CopyWindow',effort_scr,w);
+    
         Screen('DrawLine',w,color.red,(setup.xCen-Tube.width/2), Threshold.yposition, (setup.xCen+Tube.width/2), Threshold.yposition,3);
     
         [time.img, starttime] = Screen('Flip', w);
     
         if do_fmri_flag == 1 && ~strcmp(subj.runLABEL, 'training')
-            timestamps.onsets.condition_preview(i_trial,1) = starttime - timestamps.trigger.fin;
+            timestamps.onsets.condition_preview_difficulty(i_trial,1) = starttime - timestamps.trigger.fin;
         end
     
-        if do_fmri_flag == 1 && ~strcmp(subj.runLABEL, 'training') 
-            WaitSecs(2 + ball_jitter(i_trial,1)); %Show screen for 2s plus jitter value (drawn from exponential distribution with mean of 2 and max = 12)
-        else
-            WaitSecs(2);
-        end
+        WaitSecs(2);
+        
     else %uncertainty condition in experiment, draw uncertainty box
+        Screen('DrawTexture', w, incentive,[], [((setup.xCen-Tube.width)-Coin.width) (setup.ScrHeight/4) (setup.xCen-Tube.width) (setup.ScrHeight/4+Coin.width)]); 
+    
+    % Draw Tube
+    Screen('DrawLine',effort_scr,color.black,(setup.xCen-Tube.width/2), Tube.height, (setup.xCen-Tube.width/2), (setup.ScrHeight-Tube.offset),6);
+    Screen('DrawLine',effort_scr,color.black,(setup.xCen+Tube.width/2), Tube.height, (setup.xCen+Tube.width/2), (setup.ScrHeight-Tube.offset),6);
+    Screen('DrawLine',effort_scr,color.black,(setup.xCen-Tube.width/2), (setup.ScrHeight-Tube.offset), (setup.xCen+Tube.width/2), (setup.ScrHeight-Tube.offset),6);
+
+    Screen('DrawTexture', effort_scr, incentive,[], [((setup.xCen-Tube.width)-Coin.width) (setup.ScrHeight/4) (setup.xCen-Tube.width) (setup.ScrHeight/4+Coin.width)]);
+    Screen('CopyWindow',effort_scr,w);
+        
         box.position = [(setup.xCen-Tube.width/2), UpprBndUncertain, (setup.xCen+Tube.width/2), LwrBndUncertain];
         Screen('FillRect',w,color.red,box.position);
         
         [time.img, starttime] = Screen('Flip', w);
     
         if do_fmri_flag == 1 && ~strcmp(subj.runLABEL, 'training')
-            timestamps.onsets.condition_preview(i_trial,1) = starttime - timestamps.trigger.fin;
+            timestamps.onsets.condition_preview_difficulty(i_trial,1) = starttime - timestamps.trigger.fin;
         end
     
-        if do_fmri_flag == 1 && ~strcmp(subj.runLABEL, 'training') 
-            WaitSecs(2 + ball_jitter(i_trial,1)); %Show screen for 2s plus jitter value (drawn from exponential distribution with mean of 2 and max = 12)
-        else
-            WaitSecs(2);
-        end
+        WaitSecs(2);
+
     end 
         
  
@@ -907,6 +960,9 @@ while (trial_length > (GetSecs - t_trial_onset))
             % Continuously log position and time of the button for the right index
             % finger -> Joystick.Z
             [Joystick.X, Joystick.Y, Joystick.Z, Joystick.Button] = WinJoystickMex(GripForceSpec);
+            % Get timestamps of MexFile call to get accurate sampling rate
+            timestamps.grip_force_sampling_rate(i_trial,gf_sr_counter) = GetSecs;
+            gf_sr_counter = gf_sr_counter + 1;
 
             % Getting values from Grip Force Device -> Joystick.Y
                 ForceMat = Joystick.Y;
@@ -996,6 +1052,22 @@ output.payout_per_trial(4,i_trial) = input.value;
 
 %%                At the end of each trial
 %%==============call feedback===================   
+% Show fixation cross (inter-stimulus interval)
+% Fixation cross
+if do_fmri_flag == 1 && ~strcmp(subj.runLABEL, 'training') 
+        
+    % Show fixation cross 
+    fix = ['+'];
+    Screen('TextSize',w,64);
+    Screen('TextFont',w,'Arial');
+    [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, fix, 'center', 'center', color.black,80);
+    [time.fix, starttime] = Screen('Flip', w);
+
+    timestamps.onsets.fix_ISI(i_trial,1) = starttime - timestamps.trigger.fin;
+
+    WaitSecs(2 + isi_jitter(i_trial,1)); %Show screen for 2s plus jitter value (drawn from exponential distribution with mean of 3 and max = 12)
+
+end
 
 %If no VAS: Show feedback
 %effort_feedback
@@ -1014,14 +1086,20 @@ if do_fmri_flag == 1 && strcmp(subj.runLABEL, 'grEAT')
             while i_timer > GetSecs - timer_onset_feedback
 
                 if input.incentive == 1 % money
-                    text = ['Sehr gut!\n\nGewinn:   ' num2str(win_coins) '   Geld-Punkt(e). \n\n\n\n' num2str(4 - i_timer) '    Sekunden bis zur nächsten Runde.'];
+                    text = ['Sehr gut!\n\nGewinn:   ' num2str(win_coins) '   Geld-Punkt(e). \n\n\n' num2str(4 - i_timer) '    Sekunden bis zur nächsten Runde.'];
                 elseif input.incentive == 2 % food
-                    text = ['Sehr gut!\n\nGewinn:   ' num2str(win_cookies) '   Essens-Punkt(e). \n\n\n\n' num2str(4 - i_timer) '    Sekunden bis zur nächsten Runde.'];
+                    text = ['Sehr gut!\n\nGewinn:   ' num2str(win_cookies) '   Essens-Punkt(e). \n\n\n' num2str(4 - i_timer) '    Sekunden bis zur nächsten Runde.'];
                 end
-
+                    % Draw Text
                     Screen('TextSize',w,32);
                     Screen('TextFont',w,'Arial');
-                    [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', 'center', color.black,40, flip_flag_horizontal, flip_flag_vertical);
+                    [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center',(setup.ScrHeight/10), color.black,40,flip_flag_horizontal,flip_flag_vertical);
+                    % Draw Tube
+                    Screen('DrawLine',w,color.black,(setup.xCen-Tube.width/2), Tube.height, (setup.xCen-Tube.width/2), (setup.ScrHeight-Tube.offset),6);
+                    Screen('DrawLine',w,color.black,(setup.xCen+Tube.width/2), Tube.height, (setup.xCen+Tube.width/2), (setup.ScrHeight-Tube.offset),6);
+                    Screen('DrawLine',w,color.black,(setup.xCen-Tube.width/2), (setup.ScrHeight-Tube.offset), (setup.xCen+Tube.width/2), (setup.ScrHeight-Tube.offset),6);
+                    % Draw Threshold line
+                    Screen('DrawLine',w,color.red,(setup.xCen-Tube.width/2), Threshold.yposition, (setup.xCen+Tube.width/2), Threshold.yposition,3);
                     Screen('Flip',w);
             end
 
@@ -1090,6 +1168,47 @@ elseif do_fmri_flag == 0 && strcmp(subj.runLABEL, 'grEAT')
             i_timer = i_timer + 1;
         end
     end
+end
+
+% Show fixation cross (inter-trial interval)
+% Fixation cross
+if do_fmri_flag == 1 && ~strcmp(subj.runLABEL, 'training') 
+        
+    % Show fixation cross 
+    fix = ['+'];
+    Screen('TextSize',w,64);
+    Screen('TextFont',w,'Arial');
+    [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, fix, 'center', 'center', color.black,80);
+    [time.fix, starttime] = Screen('Flip', w);
+
+    timestamps.onsets.fix_ITI(i_trial,1) = starttime - timestamps.trigger.fin;
+
+    WaitSecs(2 + iti_jitter(i_trial,1)); %Show screen for 2s plus jitter value (drawn from exponential distribution with mean of 3 and max = 12)
+
+elseif do_fmri_flag == 1 && strcmp(subj.runLABEL, 'training') 
+
+    % Show fixation cross
+    fix = ['+'];
+    Screen('TextSize',w,64);
+    Screen('TextFont',w,'Arial');
+    [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, fix, 'center', 'center', color.black,80);
+    [time.fix, starttime] = Screen('Flip', w);
+
+    WaitSecs(2);
+
+else
+
+    % Manual trigger together with NEMOS tVN-Stimulation
+      fix = ['+'];
+      Screen('TextSize',w,64);
+      Screen('TextFont',w,'Arial');
+      [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, fix, 'center', 'center', color.black,80);
+      [time.fix, starttime] = Screen('Flip', w);
+
+     % Wait for experimenter input 
+     %WaitSecs(2 + fix_jitter(i_trial,1));
+     WaitSecs(2);
+
 end
 
 
@@ -1245,6 +1364,7 @@ count_joystick = 0;
 
 i_step = 1;
 t_vector = [];
+t_step_vect = [];
 
 flag = 0;
 end_of_trial = 0;
@@ -1252,6 +1372,7 @@ end_of_trial = 0;
 if do_fmri_flag == 1 && ~strcmp(subj.runLABEL, 'training')
     win_phase_counter = 1;
     rest_phase_counter = 1;
+    gf_sr_counter = 1;
 end
 
 ForceMat = restforce;
@@ -1287,8 +1408,16 @@ end
         text = ['Die Übung ist nun zu Ende. Im richtigen Spiel hätten Sie \n' num2str(win_sum_coins) ' Geld-Punkte und\n' num2str(win_sum_cookies) ' Essens-Punkte gewonnen.\n\nDie maximal ausgeübte Kraft beträgt: ' num2str(input.maxForce) '.' ];
 
    elseif strcmp(subj.runLABEL, 'grEAT') 
+       
+       if do_fmri_flag == 0
 
-        text = ['Das Spiel ist nun zu Ende.\n Sie gewinnen ' num2str(win_sum_coins) ' Punkte in Euro.\nSie gewinnen ' num2str(win_sum_cookies) ' Punkte in Kcal. \n\nVielen Dank für die Teilnahme!'];
+            text = ['Das Spiel ist nun zu Ende.\n Sie gewinnen ' num2str(win_sum_coins) ' Punkte in Euro.\nSie gewinnen ' num2str(win_sum_cookies) ' Punkte in Kcal. \n\nVielen Dank für die Teilnahme!'];
+        
+       else
+           
+           text = ['Das Spiel ist nun zu Ende.\n Sie gewinnen ' num2str(win_sum_coins) ' Punkte in Euro.\nSie gewinnen ' num2str(win_sum_cookies) ' Punkte in Kcal. \nVielen Dank für die Teilnahme!\n\n\nBitte bleiben Sie noch still liegen bis wir zu Ihnen in den Raum kommen!'];
+           
+       end
 
    end
 
@@ -1300,10 +1429,17 @@ end
             [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', setup.ScrHeight/5, color.black,60, [], [], 1.2);
         end
         Screen('Flip',w);
-        if strcmp(subj.runLABEL, 'training')
-           WaitSecs(40);
+        if do_fmri_flag == 1
+            if strcmp(subj.runLABEL, 'training')
+               WaitSecs(5);
+            else
+               WaitSecs(15);
+               % Write timestamp of experiment end
+               timestamps.exp_end = GetSecs;
+            end
+            
         else
-           WaitSecs(40);
+            WaitSecs(40);
         end
 
 
@@ -1330,7 +1466,7 @@ else
 end
 
 if do_fmri_flag == 1 && ~strcmp(subj.runLABEL, 'training')
-    save(fullfile('data', [output.filename '.mat']), 'output', 'subj', 'input', 'joy', 'conditions', 'ball_jitter','fix_jitter','timestamps');
+    save(fullfile('data', [output.filename '.mat']), 'output', 'subj', 'input', 'joy', 'conditions', 'ball_jitter','isi_jitter','iti_jitter','timestamps');
 else
 save(fullfile('data', [output.filename '.mat']), 'output', 'subj', 'input', 'joy', 'conditions', 'jitter');
 end
